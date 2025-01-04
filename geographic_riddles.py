@@ -13,13 +13,6 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from functools import partial
 from elevenlabs.client import ElevenLabs
 
-# Add Pillow compatibility layer
-from PIL import Image
-try:
-    ANTIALIAS = Image.Resampling.LANCZOS
-except AttributeError:
-    ANTIALIAS = Image.ANTIALIAS
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -148,11 +141,8 @@ class PexelsVideoManager:
         new_width = int(video_clip.w * scale)
         new_height = int(video_clip.h * scale)
         
-        # Resize video with LANCZOS resampling
-        resized = video_clip.resize(
-            (new_width, new_height),
-            resample=ANTIALIAS
-        )
+        # Resize video
+        resized = video_clip.resize((new_width, new_height))
         
         # Crop to target dimensions if needed
         x_center = (new_width - self.target_width) // 2
