@@ -1,0 +1,8 @@
+numpy>=1.24.3
+Pillow>=10.1.0
+requests>=2.31.0
+openai>=1.3.7
+elevenlabs>=0.3.0
+moviepy>=1.0.3
+python-dotenv>=1.0.0
+typing-extensions>=4.8.0 
