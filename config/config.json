@@ -1,0 +1,173 @@
+{
+    "tts": {
+        "provider": "elevenlabs",
+        "voice_id": "pqHfZKP75CvOlQylNhV4",
+        "model": "eleven_monolingual_v1",
+        "stability": 0.5,
+        "similarity_boost": 0.75,
+        "cache_dir": "cache/voice",
+        "language": "en-US"
+    },
+    "video": {
+        "pexels": {
+            "categories": ["landscape", "mountains", "ocean"],
+            "resolution": {
+                "width": 1080,
+                "height": 1920
+            },
+            "fps": 30,
+            "preferred_orientation": "portrait",
+            "min_duration": 15,
+            "max_duration": 60
+        },
+        "tiktok_optimization": {
+            "aspect_ratio": "9:16",
+            "target_duration": 27,
+            "hook_duration": 3,
+            "end_screen_duration": 2,
+            "auto_captions": true,
+            "sound_effects": {
+                "enabled": true,
+                "background_music_volume": 0.1,
+                "voice_volume": 1.0
+            }
+        },
+        "cache_dir": "cache/video",
+        "max_cache_size_gb": 5
+    },
+    "presentation": {
+        "text_overlay": {
+            "font_size": 48,
+            "font_family": "Arial",
+            "color": "#FFFFFF",
+            "background_opacity": 0.6,
+            "padding": 20,
+            "position": "smart",
+            "smart_positioning": {
+                "avoid_faces": true,
+                "avoid_busy_areas": true,
+                "preferred_zones": ["center", "lower_third"]
+            }
+        }
+    },
+    "cache": {
+        "voice_dir": "cache/voice",
+        "video_dir": "cache/video",
+        "max_cache_size": 1000000000,
+        "cleanup_threshold": 0.9
+    },
+    "game": {
+        "countdown_duration": 60,
+        "max_attempts": 3,
+        "difficulty_levels": ["easy", "medium", "hard"]
+    },
+    "audio": {
+        "countdown_file": "assets/audio/countdown.mp3",
+        "answer_file": "assets/audio/reveal.mp3",
+        "volume": 1.0,
+        "supported_formats": ["wav", "mp3"]
+    },
+    "visual_style": {
+        "question_emphasis": {
+            "keywords_highlight": true,
+            "zoom_on_key_parts": true
+        },
+        "answer_reveal": {
+            "style": "dramatic_buildup",
+            "animation": "fade_zoom",
+            "celebration_effect": true
+        }
+    },
+    "riddle": {
+        "format": {
+            "hook_patterns": [
+                "Can you solve this?",
+                "Only 1% can figure this out",
+                "Watch till the end!",
+                "Your IQ is {number} if you get this right"
+            ],
+            "challenge_patterns": [
+                "Time to test your brain!",
+                "Think you're smart enough?",
+                "Bet you can't solve this!"
+            ],
+            "reveal_patterns": [
+                "The answer is...",
+                "Did you get it right?",
+                "Here's the solution!"
+            ]
+        },
+        "timing": {
+            "hook_duration": 3,
+            "question_duration": 15,
+            "thinking_time": 5,
+            "reveal_duration": 4
+        }
+    },
+    "openai": {
+        "model": "gpt-4o-2024-08-06",
+        "temperature": 0.7,
+        "max_tokens": 500,
+        "riddle_generation": {
+            "categories": [
+                "geography",
+                "math",
+                "physics",
+                "history",
+                "logic",
+                "wordplay"
+            ],
+            "difficulty_levels": {
+                "easy": {
+                    "complexity": 0.3,
+                    "educational_level": "elementary"
+                },
+                "medium": {
+                    "complexity": 0.6,
+                    "educational_level": "high_school"
+                },
+                "hard": {
+                    "complexity": 0.9,
+                    "educational_level": "college"
+                }
+            },
+            "templates": {
+                "geography": {
+                    "system_prompt": "You are a geography expert creating engaging riddles about countries, landmarks, and geographical features.",
+                    "example_format": "I have cities but no houses, rivers but no water, forests but no trees. What am I? Answer: A map"
+                },
+                "math": {
+                    "system_prompt": "You are a mathematics expert creating riddles that make math fun and engaging.",
+                    "example_format": "The more you take away, the larger I become. What am I? Answer: A hole"
+                },
+                "physics": {
+                    "system_prompt": "You are a physics expert creating riddles about physical phenomena and scientific concepts.",
+                    "example_format": "I am faster than light but cannot escape a mirror. What am I? Answer: A reflection"
+                },
+                "history": {
+                    "system_prompt": "You are a history expert creating riddles about historical events, figures, and discoveries.",
+                    "example_format": "I was signed in 1776, I declared something great, I helped make a nation, What date am I? Answer: July 4th"
+                },
+                "logic": {
+                    "system_prompt": "You are a logic expert creating riddles that challenge critical thinking and problem-solving.",
+                    "example_format": "What comes once in a minute, twice in a moment, but never in a thousand years? Answer: The letter M"
+                },
+                "wordplay": {
+                    "system_prompt": "You are a wordplay expert creating clever riddles that play with language and meaning.",
+                    "example_format": "What word becomes shorter when you add two letters to it? Answer: Short"
+                }
+            }
+        },
+        "commentary_generation": {
+            "hooks": [
+                "Can you solve this riddle?",
+                "Test your knowledge!",
+                "Think you're smart enough?"
+            ],
+            "explanations": {
+                "style": "engaging",
+                "format": "concise"
+            }
+        }
+    }
+}

@@ -1,0 +1,167 @@
+{
+  "tts": {
+    "provider": "elevenlabs",
+    "voice_id": "pqHfZKP75CvOlQylNhV4",
+    "model": "eleven_monolingual_v1",
+    "stability": 0.5,
+    "similarity_boost": 0.75,
+    "cache_dir": "cache/voice",
+    "language": "en-US"
+  },
+  "video": {
+    "pexels": {
+      "categories": [
+        "landscape",
+        "mountains",
+        "ocean"
+      ],
+      "resolution": {
+        "width": 1080,
+        "height": 1920
+      },
+      "fps": 30,
+      "preferred_orientation": "portrait",
+      "min_duration": 15,
+      "max_duration": 60
+    },
+    "tiktok_optimization": {
+      "aspect_ratio": "9:16",
+      "target_duration": 27,
+      "hook_duration": 3,
+      "end_screen_duration": 2,
+      "auto_captions": true,
+      "sound_effects": {
+        "enabled": true,
+        "background_music_volume": 0.1,
+        "voice_volume": 1.0
+      }
+    },
+    "cache_dir": "cache/video",
+    "max_cache_size_gb": 5
+  },
+  "presentation": {
+    "text_overlay": {
+      "font_size": 48,
+      "font_family": "Arial",
+      "color": "#FFFFFF",
+      "background_opacity": 0.6,
+      "padding": 20,
+      "position": "smart",
+      "smart_positioning": {
+        "avoid_faces": true,
+        "avoid_busy_areas": true,
+        "preferred_zones": [
+          "center",
+          "lower_third"
+        ]
+      }
+    }
+  },
+  "cache": {
+    "voice_dir": "cache/voice",
+    "video_dir": "cache/video",
+    "max_cache_size": 1000000000,
+    "cleanup_threshold": 0.9
+  },
+  "game": {
+    "countdown_duration": 60,
+    "max_attempts": 3,
+    "difficulty_levels": [
+      "easy",
+      "medium",
+      "hard"
+    ]
+  },
+  "audio": {
+    "countdown_file": "assets/audio/countdown.mp3",
+    "answer_file": "assets/audio/reveal.mp3",
+    "volume": 1.0,
+    "supported_formats": [
+      "wav",
+      "mp3"
+    ]
+  },
+  "visual_style": {
+    "question_emphasis": {
+      "keywords_highlight": true,
+      "zoom_on_key_parts": true
+    },
+    "answer_reveal": {
+      "style": "dramatic_buildup",
+      "animation": "fade_zoom",
+      "celebration_effect": true
+    }
+  },
+  "riddle": {
+    "format": {
+      "hook_patterns": [
+        "Can you solve this?",
+        "Only 1% can figure this out",
+        "Watch till the end!",
+        "Your IQ is {number} if you get this right"
+      ],
+      "challenge_patterns": [
+        "Time to test your brain!",
+        "Think you're smart enough?",
+        "Bet you can't solve this!"
+      ],
+      "reveal_patterns": [
+        "The answer is...",
+        "Did you get it right?",
+        "Here's the solution!"
+      ]
+    },
+    "timing": {
+      "hook_duration": 3,
+      "question_duration": 15,
+      "thinking_time": 5,
+      "reveal_duration": 4
+    }
+  },
+  "openai": {
+    "model": "gpt-4",
+    "temperature": 0.7,
+    "max_tokens": 500,
+    "riddle_generation": {
+      "categories": [
+        "geography",
+        "math",
+        "physics",
+        "history",
+        "logic",
+        "wordplay"
+      ],
+      "difficulty_levels": {
+        "easy": {
+          "complexity": 0.3,
+          "educational_level": "elementary"
+        },
+        "medium": {
+          "complexity": 0.6,
+          "educational_level": "high_school"
+        },
+        "hard": {
+          "complexity": 0.9,
+          "educational_level": "college"
+        }
+      },
+      "templates": {
+        "default": {
+          "system_prompt": "You are a creative riddle generator. Create engaging and educational riddles that are fun to solve.",
+          "example_format": "Here's a {difficulty} {category} riddle:\n{riddle}\nAnswer: {answer}"
+        }
+      }
+    },
+    "commentary_generation": {
+      "hooks": [
+        "Can you solve this mind-bending riddle?",
+        "Only geniuses can figure this out!",
+        "Test your {category} knowledge with this riddle!"
+      ],
+      "explanations": {
+        "style": "engaging",
+        "format": "step_by_step"
+      }
+    }
+  }
+}

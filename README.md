@@ -1,119 +1,214 @@
-# Riddler
+# TikTok Riddle Video Generator
 
-A Python application that generates and presents geographic riddles with text-to-speech capabilities and video visualization. The app creates engaging TikTok-style videos featuring geographic riddles with voice-overs and background visuals.
+An automated system for generating engaging riddle videos optimized for TikTok. The generator creates videos with text overlays, voice-overs, background music, and reveal animations.
 
 ## Features
 
-- Geographic riddle generation
-- Text-to-speech conversion using ElevenLabs and OpenAI
-- Video visualization with background clips from Pexels
-- TikTok-optimized video output (1080x1920)
-- Caching system for voice and video assets
-- Parallel processing for efficient video generation
-- Configurable settings for video, audio, and text styling
+- Generate single or batch riddle videos
+- Text-to-speech voice-over using OpenAI's API
+- Customizable video styles and transitions
+- Background music and sound effects
+- Caching system for generated content
+- Command-line interface for easy use
+- Configurable video resolution and formatting
+- Multiple TTS voices to choose from
+- Support for custom background videos
+
+## Requirements
+
+- Python 3.8+
+- OpenAI API key
+- FFmpeg (for video processing)
+- Required audio assets (background music, sound effects)
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/tiktok-riddle-generator.git
+cd tiktok-riddle-generator
+```
+
+2. Run the setup script:
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+3. Add your API keys to `.env`:
+```bash
+OPENAI_API_KEY=your_openai_api_key_here
+PEXELS_API_KEY=your_pexels_api_key_here
+```
+
+4. Add required audio files to `assets/audio/`:
+- `background.mp3`: Background music
+- `celebration.mp3`: Success sound
+- `countdown.mp3`: Timer sound
+- `hook.mp3`: Intro sound
+- `reveal.mp3`: Answer reveal sound
+
+## Usage
+
+### Command Line Interface
+
+Generate a single riddle video:
+```bash
+python -m core.cli generate examples/riddle.json --output my_riddle
+```
+
+Generate multiple videos from a directory:
+```bash
+python -m core.cli batch examples/ --output-prefix batch_riddle
+```
+
+Show available TTS voices:
+```bash
+python -m core.cli voices
+```
+
+View application statistics:
+```bash
+python -m core.cli stats
+```
+
+Clear cache:
+```bash
+python -m core.cli clear-cache
+```
+
+### Configuration
+
+The application can be configured through `config/config.json`:
+
+```json
+{
+    "tts": {
+        "voice": "alloy",
+        "model": "tts-1"
+    },
+    "video": {
+        "resolution": [1080, 1920],
+        "fps": 30,
+        "background_color": "black"
+    },
+    "style": {
+        "riddle_duration": 5.0,
+        "answer_duration": 3.0,
+        "transition_duration": 1.0,
+        "font": "Arial",
+        "font_size": 70
+    },
+    "cache": {
+        "max_size_gb": 10,
+        "max_age_days": 7
+    }
+}
+```
+
+### Riddle Format
+
+Riddles should be provided in JSON format:
+
+```json
+{
+    "question": "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?",
+    "answer": "An Echo",
+    "category": "nature",
+    "difficulty": "medium"
+}
+```
 
 ## Project Structure
 
 ```
-riddler/
-├── config.py           # Configuration settings
-├── riddle_content.py   # Riddle content generation
-├── geographic_riddles.py # Geographic riddle specific logic
-├── utils.py           # Utility functions
-├── test_tts.py        # Text-to-speech testing
-├── voice_cache/       # Cached voice files
-├── pexels_cache/      # Cached video assets
-└── output/            # Generated video output
+├── assets/
+│   ├── audio/         # Audio assets
+│   └── video/         # Background videos
+├── cache/
+│   ├── voice/         # TTS cache
+│   └── video/         # Video cache
+├── config/
+│   ├── config.json    # Main configuration
+│   └── schema.py      # Configuration schema
+├── core/
+│   ├── app.py         # Main application
+│   └── cli.py         # Command line interface
+├── services/
+│   ├── tts.py         # Text-to-speech service
+│   └── video.py       # Video generation service
+├── utils/
+│   ├── cache.py       # Cache management
+│   ├── helpers.py     # Utility functions
+│   └── logger.py      # Logging setup
+├── .env               # Environment variables
+├── requirements.txt   # Python dependencies
+└── setup.sh          # Setup script
 ```
 
-## Prerequisites
+## Development
 
-- Python 3.8 or higher
-- FFmpeg installed on your system
-- ImageMagick installed on your system (for text rendering)
+### Adding New Features
 
-### Installing FFmpeg
+1. Fork the repository
+2. Create a feature branch
+3. Implement your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-- **macOS**: `brew install ffmpeg`
-- **Linux**: `sudo apt-get install ffmpeg`
-- **Windows**: Download from [FFmpeg website](https://ffmpeg.org/download.html)
-
-### Installing ImageMagick
-
-- **macOS**: `brew install imagemagick`
-- **Linux**: `sudo apt-get install imagemagick`
-- **Windows**: Download from [ImageMagick website](https://imagemagick.org/script/download.php)
-
-## Setup
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd riddler
-```
-
-2. Create and activate a virtual environment (recommended):
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-4. Set up environment variables:
-Create a `.env` file in the project root with the following variables:
-```
-OPENAI_API_KEY=your_openai_api_key
-PEXELS_API_KEY=your_pexels_api_key
-ELEVENLABS_API_KEY=your_elevenlabs_api_key
-```
-
-## Usage
-
-Run the main script to generate geographic riddles:
+### Running Tests
 
 ```bash
-python geographic_riddles.py
+python -m pytest tests/
 ```
 
-The generated video will be saved in the `output/` directory as `geographic_riddles.mp4`.
+## Troubleshooting
 
-## Configuration
+### Common Issues
 
-The application is highly configurable through the `config.py` file:
+1. **Missing FFmpeg**
+   - Install FFmpeg using your package manager
+   - Windows: Download from ffmpeg.org
 
-- Video settings (dimensions, FPS, font, colors)
-- Timing settings for different video segments
-- Cache directory locations
-- API configurations
-- Output settings (codecs, bitrate, etc.)
-- Text styling and positioning
-- Progress bar settings
+2. **API Key Issues**
+   - Ensure API keys are correctly set in `.env`
+   - Check API key permissions and quotas
 
-## Cache Directories
+3. **Audio File Errors**
+   - Verify all required audio files are present
+   - Check audio file formats (MP3 recommended)
 
-- `voice_cache/`: Stores generated text-to-speech audio files
-- `pexels_cache/`: Stores video assets used in the final output
-- `output/`: Stores the final generated videos
+4. **Video Generation Fails**
+   - Check FFmpeg installation
+   - Verify sufficient disk space
+   - Check log files for details
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on how to submit pull requests.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-- [OpenAI](https://openai.com/) for text-to-speech capabilities
-- [ElevenLabs](https://elevenlabs.io/) for voice generation
-- [Pexels](https://www.pexels.com/) for video assets
-- [MoviePy](https://zulko.github.io/moviepy/) for video processing 
+- OpenAI for TTS API
+- MoviePy developers
+- FFmpeg project
+- All contributors
+
+## Support
+
+For support, please:
+1. Check the documentation
+2. Search existing issues
+3. Create a new issue if needed
+
+## Roadmap
+
+- [ ] Add more voice options
+- [ ] Implement video templates
+- [ ] Add background video library
+- [ ] Improve caching system
+- [ ] Add web interface 
