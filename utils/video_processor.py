@@ -469,7 +469,7 @@ class VideoProcessor:
         """
         try:
             # Create temporary files
-            temp_dir = os.path.join(self.output_dir, "temp")
+            temp_dir = os.path.join(os.path.dirname(output_path), "temp")
             os.makedirs(temp_dir, exist_ok=True)
             
             resized_bg = os.path.join(temp_dir, "resized_bg.mp4")
@@ -481,6 +481,10 @@ class VideoProcessor:
                 effects=effects
             ):
                 raise ValueError("Failed to resize background video")
+            
+            # Verify resized video exists
+            if not os.path.exists(resized_bg):
+                raise ValueError(f"Resized video not found: {resized_bg}")
             
             # Step 2: Load video and audio clips
             try:
