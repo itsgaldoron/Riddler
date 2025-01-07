@@ -52,18 +52,17 @@ def main():
     args = parse_args()
     
     try:
-        # Initialize Riddler
-        riddler = Riddler()
+        # Initialize Riddler with output directory
+        riddler = Riddler(output_dir=args.output)
         
         # Create output directory if it doesn't exist
         os.makedirs(args.output, exist_ok=True)
         
-        # Calculate number of riddles based on target video duration (60-90 seconds)
-        # Each riddle takes about 27 seconds with all segments
-        riddle_duration = 27  # seconds per riddle
-        min_duration = 60  # minimum target duration
-        max_duration = 90  # maximum target duration
-        target_duration = 75  # aim for middle of range
+        # Get timing configuration from riddler's config
+        riddle_duration = riddler.config.get("video.tiktok_optimization.target_duration", 27)  # seconds per riddle
+        min_duration = riddler.config.get("video.duration.min_total", 60)
+        max_duration = riddler.config.get("video.duration.max_total", 90)
+        target_duration = riddler.config.get("video.duration.target_total", 75)
         
         # Calculate optimal number of riddles
         min_riddles = max(2, int(min_duration / riddle_duration))

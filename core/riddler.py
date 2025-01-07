@@ -10,7 +10,7 @@ from utils.helpers import ensure_directory, get_api_key
 from services.openai_service import OpenAIService
 from services.tts_service import TTSService
 from services.video_service import VideoService
-from utils.video_processor import VideoProcessor
+from utils.video_effects_engine import VideoEffectsEngine
 from config.config import Config
 from config.exceptions import RiddlerException
 
@@ -64,8 +64,8 @@ class Riddler:
             logger=self.logger
         )
         
-        # Initialize video processor
-        self.processor = VideoProcessor(
+        # Initialize effects engine
+        self.effects_engine = VideoEffectsEngine(
             output_dir=output_dir,
             width=self.config.get("video.resolution.width"),
             height=self.config.get("video.resolution.height"),
@@ -177,7 +177,7 @@ class Riddler:
             transitions = self.config.get("video.effects.transitions", ["fade"])
             
             # Create final video
-            success = self.processor.create_riddle_video(
+            success = self.effects_engine.create_riddle_video(
                 background_path=str(background),
                 riddle_audio_path=str(riddle_audio),
                 answer_audio_path=str(answer_audio),
@@ -304,7 +304,7 @@ class Riddler:
                 raise RiddlerException("Failed to process any riddles")
             
             # Create multi-riddle video
-            success = self.processor.create_multi_riddle_video(
+            success = self.effects_engine.createMultiRiddleVideo(
                 background_path=str(background_path),
                 riddle_segments=riddle_segments,
                 output_path=output_path,

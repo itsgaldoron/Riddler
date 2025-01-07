@@ -2,6 +2,7 @@
 
 import os
 from typing import List
+from config.config import Config
 
 def validate_category(category: str) -> bool:
     """Validate riddle category
@@ -66,8 +67,10 @@ def validate_duration(duration: int) -> bool:
     Raises:
         ValueError: If duration is invalid
     """
-    min_duration = 3
-    max_duration = 3
+    config = Config()
+    
+    min_duration = config.get("video.duration.min_segment", 3)
+    max_duration = config.get("video.duration.max_segment", 3)
     
     if not isinstance(duration, int):
         raise ValueError("Duration must be an integer")

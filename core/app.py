@@ -11,6 +11,7 @@ from utils.logger import log
 from utils.metrics import metrics
 from utils.helpers import ensure_directory
 from config.exceptions import RiddlerException
+from utils.video_effects_engine import VideoEffectsEngine
 
 class RiddleApp:
     """Main application class with resource management."""
@@ -213,9 +214,9 @@ class RiddleApp:
         """
         try:
             # Initialize services if needed
-            if not hasattr(self, 'video_processor'):
-                from utils.video_processor import VideoProcessor
-                self.video_processor = VideoProcessor(
+            if not hasattr(self, 'effects_engine'):
+                from utils.video_effects_engine import VideoEffectsEngine
+                self.effects_engine = VideoEffectsEngine(
                     output_dir=self.output_dir,
                     height=1920
                 )
@@ -228,7 +229,7 @@ class RiddleApp:
             riddle_data = self.riddle_service.generate_riddle(category)
             
             # Generate video
-            return self.video_processor.create_riddle_video(
+            return self.effects_engine.create_riddle_video(
                 riddle_text=riddle_data['riddle'],
                 answer_text=riddle_data['answer'],
                 **kwargs

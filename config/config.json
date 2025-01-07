@@ -20,6 +20,29 @@
             "min_duration": 1,
             "max_duration": 3
         },
+        "text": {
+            "font_scale": 1.0,
+            "font_thickness": 2,
+            "font_color": [255, 255, 255],
+            "background_color": [0, 0, 0],
+            "font_size": 36,
+            "font_family": "Arial",
+            "background_opacity": 0.5,
+            "position": "smart"
+        },
+        "effects": {
+            "zoom": {
+                "enabled": true,
+                "max_scale": 1.2
+            }
+        },
+        "duration": {
+            "min_total": 60,
+            "max_total": 90,
+            "target_total": 75,
+            "min_segment": 3,
+            "max_segment": 3
+        },
         "tiktok_optimization": {
             "aspect_ratio": "9:16",
             "target_duration": 27,
@@ -56,35 +79,31 @@
         "max_cache_size": 1000000000,
         "cleanup_threshold": 0.9
     },
-    "game": {
-        "countdown_duration": 60,
-        "max_attempts": 3,
-        "difficulty_levels": ["easy", "medium", "hard"]
-    },
-    "audio": {
-        "countdown_file": "assets/audio/countdown.mp3",
-        "answer_file": "assets/audio/reveal.mp3",
-        "volume": 1.0,
-        "supported_formats": ["wav", "mp3"]
-    },
-    "visual_style": {
-        "question_emphasis": {
-            "keywords_highlight": true,
-            "zoom_on_key_parts": true
-        },
-        "answer_reveal": {
-            "style": "dramatic_buildup",
-            "animation": "fade_zoom",
-            "celebration_effect": true
-        }
-    },
     "riddle": {
+        "timing": {
+            "hook": {
+                "min_duration": 5,
+                "padding": 1
+            },
+            "cta": {
+                "min_duration": 4,
+                "padding": 1
+            },
+            "thinking": {
+                "duration": 6
+            },
+            "question": {
+                "padding": 2
+            },
+            "answer": {
+                "padding": 3
+            }
+        },
         "format": {
             "hook_patterns": [
-                "Can you solve this?",
-                "Only 1% can figure this out",
-                "Watch till the end!",
-                "Your IQ is {number} if you get this right"
+                "Can You Solve These Mind-Bending Riddles?",
+                "Test Your Brain with These Riddles!",
+                "Only Geniuses Can Solve These Riddles!"
             ],
             "challenge_patterns": [
                 "Time to test your brain!",
@@ -96,12 +115,6 @@
                 "Did you get it right?",
                 "Here's the solution!"
             ]
-        },
-        "timing": {
-            "hook_duration": 3,
-            "question_duration": 15,
-            "thinking_time": 5,
-            "reveal_duration": 4
         }
     },
     "openai": {
@@ -153,7 +166,7 @@
                     "example_format": "What comes once in a minute, twice in a moment, but never in a thousand years? Answer: The letter M"
                 },
                 "wordplay": {
-                    "system_prompt": "You are a wordplay expert creating clever riddles that play with language and meaning.",
+                    "system_prompt": "You are a wordplay expert creating riddles that play with language and meaning.",
                     "example_format": "What word becomes shorter when you add two letters to it? Answer: Short"
                 }
             }
