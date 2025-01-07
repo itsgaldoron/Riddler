@@ -242,3 +242,79 @@ class Riddler:
                     self.logger.error(f"Error processing {category}: {str(e)}")
         
         return video_paths 
+    
+    def create_multi_riddle_video(
+        self,
+        riddles: List[Dict],
+        category: str,
+        output_path: Optional[str] = None
+    ) -> str:
+        """Create a video containing multiple riddles
+        
+        Args:
+            riddles: List of riddle data dictionaries
+            category: Riddle category
+            output_path: Optional output path
+            
+        Returns:
+            Path to created video
+        """
+        try:
+            if not riddles:
+                raise RiddlerException("No riddles provided")
+            
+            # Generate output path if not provided
+            if output_path is None:
+                output_path = os.path.join(
+                    self.output_dir,
+                    f"riddle_{category}_{os.urandom(4).hex()}.mp4"
+                )
+            
+            # Create output directory if it doesn't exist
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            
+            # Get background video
+            background_path = self.video.get_video(category)
+            if not background_path:
+                raise RiddlerException("Failed to get background video")
+            
+            # Process each riddle
+            riddle_segments = []
+            for riddle in riddles:
+                # Generate speech for riddle and answer
+                riddle_audio = self.tts.generate_speech(riddle['riddle'])
+                answer_audio = self.tts.generate_speech(
+                    f"{riddle['answer']}. {riddle.get('explanation', '')}"
+                )
+                
+                if not riddle_audio or not answer_audio:
+                    self.logger.warning(f"Failed to generate audio for riddle")
+                    continue
+                
+                riddle_segments.append({
+                    'riddle_audio': str(riddle_audio),
+                    'answer_audio': str(answer_audio),
+                    'riddle_text': riddle['riddle'],
+                    'answer_text': riddle['answer']
+                })
+            
+            if not riddle_segments:
+                raise RiddlerException("Failed to process any riddles")
+            
+            # Create multi-riddle video
+            success = self.processor.create_multi_riddle_video(
+                background_path=str(background_path),
+                riddle_segments=riddle_segments,
+                output_path=output_path,
+                tts_engine=self.tts
+            )
+            
+            if not success:
+                raise RiddlerException("Failed to create multi-riddle video")
+            
+            self.logger.info(f"Successfully created multi-riddle video: {output_path}")
+            return output_path
+            
+        except Exception as e:
+            self.logger.error(f"Error creating multi-riddle video: {str(e)}")
+            raise RiddlerException(f"Failed to create multi-riddle video: {str(e)}") 

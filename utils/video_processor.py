@@ -4,10 +4,11 @@ import cv2
 import numpy as np
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-from moviepy.editor import VideoFileClip, AudioFileClip, TextClip, CompositeVideoClip, concatenate_videoclips
+from typing import Dict, List, Optional, Tuple, Union, Any
+from moviepy.editor import VideoFileClip, AudioFileClip, TextClip, CompositeVideoClip, concatenate_videoclips, concatenate_audioclips, CompositeAudioClip
 from moviepy.video.tools.subtitles import SubtitlesClip
 from utils.logger import log, StructuredLogger
+import random
 
 class VideoProcessor:
     """Video processor class for editing and combining videos"""
@@ -452,21 +453,6 @@ class VideoProcessor:
         effects: Optional[List[str]] = None,
         transitions: Optional[List[str]] = None
     ) -> bool:
-        """Create a complete riddle video
-        
-        Args:
-            background_path: Path to background video
-            riddle_audio_path: Path to riddle audio
-            answer_audio_path: Path to answer audio
-            riddle_text: Riddle text
-            answer_text: Answer text
-            output_path: Output path
-            effects: List of visual effects to apply
-            transitions: List of transitions to use
-            
-        Returns:
-            True if successful
-        """
         try:
             # Create temporary files
             temp_dir = os.path.join(os.path.dirname(output_path), "temp")
@@ -491,210 +477,73 @@ class VideoProcessor:
                 video = VideoFileClip(resized_bg, audio=False)  # Disable audio for background
                 riddle_audio = AudioFileClip(riddle_audio_path)
                 answer_audio = AudioFileClip(answer_audio_path)
+                countdown_audio = AudioFileClip("assets/audio/countdown.mp3")
+                reveal_audio = AudioFileClip("assets/audio/reveal.mp3")
             except Exception as e:
                 raise ValueError(f"Failed to load media files: {str(e)}")
             
-            # Step 3: Create riddle segment
-            riddle_segment = video.subclip(0, riddle_audio.duration)
-            riddle_segment = riddle_segment.set_audio(riddle_audio)
+            # Get timing configuration
+            question_duration = riddle_audio.duration + 2  # Add buffer for text display
+            thinking_time = 6  # Countdown duration
+            answer_duration = answer_audio.duration + 3  # Add buffer for explanation
             
-            # Step 4: Create answer segment
-            answer_segment = video.subclip(
-                riddle_audio.duration,
-                riddle_audio.duration + answer_audio.duration
-            )
-            answer_segment = answer_segment.set_audio(answer_audio)
+            # Calculate total required duration
+            total_duration = question_duration + thinking_time + answer_duration
             
-            # Create text overlay function for riddle
-            def riddle_text_overlay(frame):
-                # Create a copy of the frame
-                result = frame.copy()
-                
-                # Add semi-transparent black background
-                overlay = np.zeros_like(frame)
-                cv2.rectangle(
-                    overlay,
-                    (0, int(frame.shape[0] * 0.4)),
-                    (frame.shape[1], int(frame.shape[0] * 0.6)),
-                    (0, 0, 0),
-                    -1
-                )
-                cv2.addWeighted(overlay, 0.5, result, 1 - 0.5, 0, result)
-                
-                # Split text into lines
-                max_width = int(frame.shape[1] * 0.8)
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                font_scale = 1.5
-                thickness = 2
-                
-                # Calculate text size and split into lines
-                words = riddle_text.split()
-                lines = []
-                current_line = []
-                current_width = 0
-                
-                for word in words:
-                    word_size = cv2.getTextSize(
-                        word + " ",
-                        font,
-                        font_scale,
-                        thickness
-                    )[0]
-                    
-                    if current_width + word_size[0] <= max_width:
-                        current_line.append(word)
-                        current_width += word_size[0]
-                    else:
-                        lines.append(" ".join(current_line))
-                        current_line = [word]
-                        current_width = word_size[0]
-                
-                if current_line:
-                    lines.append(" ".join(current_line))
-                
-                # Draw text lines
-                y = int(frame.shape[0] * 0.5)
-                for line in lines:
-                    text_size = cv2.getTextSize(
-                        line,
-                        font,
-                        font_scale,
-                        thickness
-                    )[0]
-                    x = (frame.shape[1] - text_size[0]) // 2
-                    
-                    # Draw text with outline
-                    cv2.putText(
-                        result,
-                        line,
-                        (x, y),
-                        font,
-                        font_scale,
-                        (0, 0, 0),  # Black outline
-                        thickness * 3
-                    )
-                    cv2.putText(
-                        result,
-                        line,
-                        (x, y),
-                        font,
-                        font_scale,
-                        (255, 255, 255),  # White text
-                        thickness
-                    )
-                    y += text_size[1] + 10
-                
-                return result
+            # If background video is too short, loop it
+            if video.duration < total_duration:
+                video = video.loop(duration=total_duration)
             
-            # Create text overlay function for answer
-            def answer_text_overlay(frame):
-                # Create a copy of the frame
-                result = frame.copy()
-                
-                # Add semi-transparent black background
-                overlay = np.zeros_like(frame)
-                cv2.rectangle(
-                    overlay,
-                    (0, int(frame.shape[0] * 0.4)),
-                    (frame.shape[1], int(frame.shape[0] * 0.6)),
-                    (0, 0, 0),
-                    -1
-                )
-                cv2.addWeighted(overlay, 0.5, result, 1 - 0.5, 0, result)
-                
-                # Split text into lines
-                max_width = int(frame.shape[1] * 0.8)
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                font_scale = 1.5
-                thickness = 2
-                
-                # Calculate text size and split into lines
-                words = ("The answer is: " + answer_text).split()
-                lines = []
-                current_line = []
-                current_width = 0
-                
-                for word in words:
-                    word_size = cv2.getTextSize(
-                        word + " ",
-                        font,
-                        font_scale,
-                        thickness
-                    )[0]
-                    
-                    if current_width + word_size[0] <= max_width:
-                        current_line.append(word)
-                        current_width += word_size[0]
-                    else:
-                        lines.append(" ".join(current_line))
-                        current_line = [word]
-                        current_width = word_size[0]
-                
-                if current_line:
-                    lines.append(" ".join(current_line))
-                
-                # Draw text lines
-                y = int(frame.shape[0] * 0.5)
-                for line in lines:
-                    text_size = cv2.getTextSize(
-                        line,
-                        font,
-                        font_scale,
-                        thickness
-                    )[0]
-                    x = (frame.shape[1] - text_size[0]) // 2
-                    
-                    # Draw text with outline
-                    cv2.putText(
-                        result,
-                        line,
-                        (x, y),
-                        font,
-                        font_scale,
-                        (0, 0, 0),  # Black outline
-                        thickness * 3
-                    )
-                    cv2.putText(
-                        result,
-                        line,
-                        (x, y),
-                        font,
-                        font_scale,
-                        (255, 255, 255),  # White text
-                        thickness
-                    )
-                    y += text_size[1] + 10
-                
-                return result
+            # Step 3: Create question segment
+            current_time = 0
+            question_segment = video.subclip(current_time, current_time + question_duration)
+            question_segment = question_segment.set_audio(riddle_audio)
+            question_segment = question_segment.fl_image(lambda frame: self._create_text_overlay(frame, riddle_text))
+            current_time += question_duration
             
-            # Apply text overlays
-            riddle_segment = riddle_segment.fl_image(riddle_text_overlay)
-            answer_segment = answer_segment.fl_image(answer_text_overlay)
+            # Step 4: Create thinking time segment with countdown
+            thinking_segment = video.subclip(current_time, current_time + thinking_time)
+            # Play countdown audio twice (3 seconds each)
+            countdown_audio_doubled = concatenate_audioclips([countdown_audio, countdown_audio])
+            thinking_segment = thinking_segment.set_audio(countdown_audio_doubled)
+            thinking_segment = thinking_segment.fl_image(lambda frame: self._create_text_overlay(frame, "⏱️ Time to Think!"))
+            current_time += thinking_time
             
-            # Step 5: Concatenate segments with crossfade
+            # Step 5: Create answer segment with explanation
+            answer_segment = video.subclip(current_time, current_time + answer_duration)
+            # Add reveal sound before answer audio
+            reveal_with_answer = concatenate_audioclips([reveal_audio, answer_audio])
+            answer_segment = answer_segment.set_audio(reveal_with_answer)
+            answer_segment = answer_segment.fl_image(lambda frame: self._create_text_overlay(frame, f"The answer is:\n{answer_text}"))
+            
+            # Step 6: Concatenate segments with crossfade
             final_video = concatenate_videoclips(
-                [riddle_segment, answer_segment],
+                [
+                    question_segment,
+                    thinking_segment,
+                    answer_segment
+                ],
                 method="compose",
-                padding=-0.5  # Add a small crossfade
+                padding=-0.5  # Smooth crossfade
             )
             
-            # Step 6: Write final video
+            # Write final video
             final_video.write_videofile(
                 output_path,
                 codec='libx264',
                 audio_codec='aac',
                 fps=self.fps,
-                preset='ultrafast',  # Faster encoding
-                threads=4  # Use multiple threads
+                preset='ultrafast',
+                threads=4
             )
             
-            # Step 7: Clean up
+            # Clean up
             try:
                 video.close()
                 riddle_audio.close()
                 answer_audio.close()
-                riddle_segment.close()
-                answer_segment.close()
+                countdown_audio.close()
+                reveal_audio.close()
                 final_video.close()
             except Exception as e:
                 self.logger.error(f"Error closing clips: {str(e)}")
@@ -715,220 +564,227 @@ class VideoProcessor:
             self.logger.error(f"Error creating riddle video: {str(e)}")
             return False
     
-    def _create_segment(
-        self,
-        video_path: str,
-        audio_path: str,
-        text: str,
-        output_path: str,
-        text_position: Tuple[float, float]
-    ) -> bool:
-        """Create a video segment with audio and text
+    def _create_text_overlay(self, frame: np.ndarray, text: str) -> np.ndarray:
+        """Create consistent text overlay for all segments"""
+        result = frame.copy()
         
-        Args:
-            video_path: Path to video
-            audio_path: Path to audio
-            text: Text to overlay
-            output_path: Output path
-            text_position: Text position (x, y) as fractions
+        # Add gradient background
+        overlay = np.zeros_like(frame)
+        h, w = frame.shape[:2]
+        for i in range(h):
+            alpha = 0.7 * (1 - abs(i - h/2)/(h/2))
+            overlay[i, :] = [0, 0, 0]  # Black background
+            cv2.addWeighted(overlay[i:i+1, :], alpha, result[i:i+1, :], 1-alpha, 0, result[i:i+1, :])
+        
+        # Draw text
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 1.8
+        thickness = 2
+        
+        lines = text.split('\n')
+        y = int(h * 0.4)
+        
+        for line in lines:
+            text_size = cv2.getTextSize(line, font, font_scale, thickness)[0]
+            x = (w - text_size[0]) // 2
             
-        Returns:
-            True if successful
-        """
-        try:
-            cap = cv2.VideoCapture(video_path)
-            if not cap.isOpened():
-                raise ValueError(f"Could not open video: {video_path}")
+            # Draw outline
+            cv2.putText(result, line, (x, y), font, font_scale, (0, 0, 0), thickness * 3)
+            cv2.putText(result, line, (x, y), font, font_scale, (255, 255, 255), thickness)
             
-            # Get video properties
-            fps = int(cap.get(cv2.CAP_PROP_FPS))
-            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            
-            # Create output video
-            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            out = cv2.VideoWriter(
-                output_path,
-                fourcc,
-                fps,
-                (width, height)
-            )
-            
-            # Calculate text position
-            text_x = int(width * text_position[0])
-            text_y = int(height * text_position[1])
-            
-            frame_count = 0
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    break
-                
-                # Add text with animation
-                progress = min(frame_count / (fps * 0.5), 1.0)
-                frame = self.add_text_overlay(
-                    frame,
-                    text,
-                    (text_x, text_y),
-                    animation="fade",
-                    progress=progress
-                )
-                
-                out.write(frame)
-                frame_count += 1
-            
-            # Release resources
-            cap.release()
-            out.release()
-            
-            # Add audio
-            return self._merge_audio_video(output_path, audio_path, output_path)
-            
-        except Exception as e:
-            self.logger.error(f"Error creating segment: {str(e)}")
-            return False
+            y += text_size[1] + 20
+        
+        return result
     
-    def _merge_segments(
+    def create_multi_riddle_video(
         self,
-        segment_paths: List[str],
+        background_path: str,
+        riddle_segments: List[Dict],
         output_path: str,
+        tts_engine: Any,  # ElevenLabs TTS engine
+        effects: Optional[List[str]] = None,
         transitions: Optional[List[str]] = None
     ) -> bool:
-        """Merge video segments with transitions
-        
-        Args:
-            segment_paths: List of segment paths
-            output_path: Output path
-            transitions: List of transitions to use
-            
-        Returns:
-            True if successful
-        """
         try:
-            if not segment_paths:
-                raise ValueError("No segments to merge")
+            # Create temporary directory
+            temp_dir = os.path.join(os.path.dirname(output_path), "temp")
+            os.makedirs(temp_dir, exist_ok=True)
             
-            if len(segment_paths) == 1:
-                # Just copy the single segment
-                import shutil
-                shutil.copy2(segment_paths[0], output_path)
-                return True
+            # Step 1: Generate/load voice overs
+            hook_text = "Can You Solve These Mind-Bending Riddles?"
+            cta_text = "Follow for Daily Riddles! Like if You Got Them Right!"
             
-            # Get first segment properties
-            cap = cv2.VideoCapture(segment_paths[0])
-            if not cap.isOpened():
-                raise ValueError("Could not open first segment")
+            # Generate hook and CTA voice overs
+            hook_audio = tts_engine.generate_speech(hook_text)
+            cta_audio = tts_engine.generate_speech(cta_text)
             
-            fps = int(cap.get(cv2.CAP_PROP_FPS))
-            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            cap.release()
+            # Generate/load question number voice overs
+            question_number_audios = []
+            for i in range(len(riddle_segments)):
+                cache_path = f"cache/voice/question_{i+1}_eleven.mp3"
+                if os.path.exists(cache_path):
+                    question_number_audios.append(AudioFileClip(cache_path))
+                else:
+                    question_vo = tts_engine.generate_speech(f"Question number {i+1}")
+                    os.rename(question_vo, cache_path)
+                    question_number_audios.append(AudioFileClip(cache_path))
             
-            # Create output video
-            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            out = cv2.VideoWriter(
+            # Step 2: Resize background video
+            resized_bg = os.path.join(temp_dir, "resized_bg.mp4")
+            if not self.resize_video(background_path, resized_bg, effects=effects):
+                raise ValueError("Failed to resize background video")
+            
+            # Step 3: Load all media
+            try:
+                video = VideoFileClip(resized_bg, audio=False)
+                countdown_audio = AudioFileClip("assets/audio/countdown.mp3")
+                reveal_audio = AudioFileClip("assets/audio/reveal.mp3")
+                hook_audio_clip = AudioFileClip(str(hook_audio))
+                cta_audio_clip = AudioFileClip(str(cta_audio))
+                
+                # Load all riddle audios
+                riddle_audios = []
+                for segment in riddle_segments:
+                    riddle_audio = AudioFileClip(segment['riddle_audio'])
+                    answer_audio = AudioFileClip(segment['answer_audio'])
+                    riddle_audios.append((riddle_audio, answer_audio))
+            except Exception as e:
+                raise ValueError(f"Failed to load media files: {str(e)}")
+            
+            # Calculate total duration needed
+            hook_duration = max(5, hook_audio_clip.duration + 1)  # At least 5 seconds or audio duration + 1s
+            cta_duration = max(4, cta_audio_clip.duration + 1)  # At least 4 seconds or audio duration + 1s
+            
+            total_duration = hook_duration
+            segment_timings = []
+            
+            for i, (riddle_audio, answer_audio) in enumerate(riddle_audios):
+                question_number_duration = question_number_audios[i].duration + 0.5
+                question_duration = riddle_audio.duration + 2
+                thinking_duration = 6
+                answer_duration = answer_audio.duration + 3
+                
+                segment_timings.append({
+                    'number_start': total_duration,
+                    'number_end': total_duration + question_number_duration,
+                    'question_start': total_duration + question_number_duration,
+                    'question_end': total_duration + question_number_duration + question_duration,
+                    'thinking_start': total_duration + question_number_duration + question_duration,
+                    'thinking_end': total_duration + question_number_duration + question_duration + thinking_duration,
+                    'answer_start': total_duration + question_number_duration + question_duration + thinking_duration,
+                    'answer_end': total_duration + question_number_duration + question_duration + thinking_duration + answer_duration
+                })
+                
+                total_duration += question_number_duration + question_duration + thinking_duration + answer_duration
+            
+            total_duration += cta_duration
+            
+            # Ensure background video is long enough
+            if video.duration < total_duration:
+                video = video.loop(duration=total_duration)
+            
+            def make_frame(t):
+                # Get the base frame
+                frame = video.get_frame(t)
+                
+                # Hook section
+                if t < hook_duration:
+                    hook_text = "🧠 Can You Solve These Mind-Bending Riddles?"
+                    return self._create_text_overlay(frame, hook_text)
+                
+                # CTA section
+                if t >= total_duration - cta_duration:
+                    cta_text = "👆 Follow for Daily Riddles!\n❤️ Like if You Got Them Right!"
+                    return self._create_text_overlay(frame, cta_text)
+                
+                # Riddle sections
+                for i, timing in enumerate(segment_timings):
+                    if timing['number_start'] <= t < timing['number_end']:
+                        return self._create_text_overlay(frame, f"Question #{i+1}")
+                    elif timing['question_start'] <= t < timing['question_end']:
+                        return self._create_text_overlay(frame, riddle_segments[i]['riddle_text'])
+                    elif timing['thinking_start'] <= t < timing['thinking_end']:
+                        # Calculate countdown number (6 to 1)
+                        elapsed = t - timing['thinking_start']
+                        countdown = 6 - int(elapsed)
+                        if countdown < 1:
+                            countdown = 1
+                        return self._create_text_overlay(frame, f"⏱️ {countdown}")
+                    elif timing['answer_start'] <= t < timing['answer_end']:
+                        return self._create_text_overlay(frame, f"The answer is:\n{riddle_segments[i]['answer_text']}")
+                
+                return frame
+            
+            # Create the final video clip
+            final_video = VideoFileClip(resized_bg, audio=False).set_duration(total_duration)
+            final_video = final_video.set_make_frame(make_frame)
+            
+            # Create audio segments
+            audio_segments = []
+            
+            # Add hook audio
+            audio_segments.append(hook_audio_clip.set_start(0))
+            
+            # Add CTA audio at the end
+            audio_segments.append(cta_audio_clip.set_start(total_duration - cta_duration))
+            
+            for i, (riddle_audio, answer_audio) in enumerate(riddle_audios):
+                # Add question number audio
+                audio_segments.append(question_number_audios[i].set_start(segment_timings[i]['number_start']))
+                
+                # Add riddle audio
+                audio_segments.append(riddle_audio.set_start(segment_timings[i]['question_start']))
+                
+                # Add countdown audio (played twice)
+                countdown_start = segment_timings[i]['thinking_start']
+                audio_segments.append(countdown_audio.copy().set_start(countdown_start))
+                audio_segments.append(countdown_audio.copy().set_start(countdown_start + 3))
+                
+                # Add reveal and answer audio
+                answer_start = segment_timings[i]['answer_start']
+                audio_segments.append(reveal_audio.copy().set_start(answer_start))
+                audio_segments.append(answer_audio.set_start(answer_start + reveal_audio.duration))
+            
+            # Combine all audio
+            final_audio = CompositeAudioClip(audio_segments)
+            final_video = final_video.set_audio(final_audio)
+            
+            # Write final video
+            final_video.write_videofile(
                 output_path,
-                fourcc,
-                fps,
-                (width, height)
+                codec='libx264',
+                audio_codec='aac',
+                fps=self.fps,
+                preset='ultrafast',
+                threads=4
             )
             
-            # Process segments
-            transition_frames = int(fps)  # 1 second transition
-            transitions = transitions or ["fade"]
-            current_transition = 0
+            # Clean up
+            try:
+                video.close()
+                countdown_audio.close()
+                reveal_audio.close()
+                hook_audio_clip.close()
+                cta_audio_clip.close()
+                final_video.close()
+                for audio in question_number_audios:
+                    audio.close()
+                for riddle_audio, answer_audio in riddle_audios:
+                    riddle_audio.close()
+                    answer_audio.close()
+            except Exception as e:
+                self.logger.error(f"Error closing clips: {str(e)}")
             
-            for i, segment_path in enumerate(segment_paths):
-                cap = cv2.VideoCapture(segment_path)
-                
-                # Write segment frames
-                while True:
-                    ret, frame = cap.read()
-                    if not ret:
-                        break
-                    
-                    # If not last segment, handle transition
-                    if (i < len(segment_paths) - 1 and
-                        cap.get(cv2.CAP_PROP_POS_FRAMES) >
-                        cap.get(cv2.CAP_PROP_FRAME_COUNT) - transition_frames):
-                        
-                        # Get next segment's first frame
-                        next_cap = cv2.VideoCapture(segment_paths[i + 1])
-                        _, next_frame = next_cap.read()
-                        next_cap.release()
-                        
-                        if next_frame is not None:
-                            # Calculate transition progress
-                            progress = (cap.get(cv2.CAP_PROP_POS_FRAMES) -
-                                      (cap.get(cv2.CAP_PROP_FRAME_COUNT) -
-                                       transition_frames)) / transition_frames
-                            
-                            # Apply transition
-                            transition = transitions[
-                                current_transition % len(transitions)
-                            ]
-                            frame = self.add_transition(
-                                frame,
-                                next_frame,
-                                progress,
-                                transition
-                            )
-                    
-                    out.write(frame)
-                
-                cap.release()
-                current_transition += 1
-            
-            out.release()
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Error merging segments: {str(e)}")
-            return False
-    
-    def _merge_audio_video(
-        self,
-        video_path: str,
-        audio_path: str,
-        output_path: str
-    ) -> bool:
-        """Merge audio and video files
-        
-        Args:
-            video_path: Path to video file
-            audio_path: Path to audio file
-            output_path: Output path
-            
-        Returns:
-            True if successful
-        """
-        try:
-            import subprocess
-            
-            # Use ffmpeg to merge audio and video
-            cmd = [
-                "ffmpeg", "-y",
-                "-i", video_path,
-                "-i", audio_path,
-                "-c:v", "copy",
-                "-c:a", "aac",
-                "-strict", "experimental",
-                output_path
-            ]
-            
-            result = subprocess.run(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
-            )
-            
-            if result.returncode != 0:
-                raise ValueError(
-                    f"FFmpeg error: {result.stderr.decode()}"
-                )
+            # Clean up temporary files
+            try:
+                if os.path.exists(temp_dir):
+                    import shutil
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+            except Exception as e:
+                self.logger.error(f"Error cleaning up temp files: {str(e)}")
             
             return True
             
         except Exception as e:
-            self.logger.error(f"Error merging audio and video: {str(e)}")
+            self.logger.error(f"Error creating multi-riddle video: {str(e)}")
             return False 
