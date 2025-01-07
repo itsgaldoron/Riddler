@@ -213,9 +213,9 @@ class RiddleApp:
         """
         try:
             # Initialize services if needed
-            if not hasattr(self, 'video_service'):
-                from services.video import VideoService
-                self.video_service = VideoService(
+            if not hasattr(self, 'video_processor'):
+                from utils.video_processor import VideoProcessor
+                self.video_processor = VideoProcessor(
                     output_dir=self.output_dir,
                     height=1920
                 )
@@ -228,7 +228,7 @@ class RiddleApp:
             riddle_data = self.riddle_service.generate_riddle(category)
             
             # Generate video
-            return self.video_service.generate_riddle_video(
+            return self.video_processor.create_riddle_video(
                 riddle_text=riddle_data['riddle'],
                 answer_text=riddle_data['answer'],
                 **kwargs
