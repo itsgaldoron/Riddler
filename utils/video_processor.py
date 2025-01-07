@@ -704,7 +704,8 @@ class VideoProcessor:
                 if os.path.exists(resized_bg):
                     os.remove(resized_bg)
                 if os.path.exists(temp_dir):
-                    os.rmdir(temp_dir)
+                    import shutil
+                    shutil.rmtree(temp_dir, ignore_errors=True)
             except Exception as e:
                 self.logger.error(f"Error cleaning up temp files: {str(e)}")
             

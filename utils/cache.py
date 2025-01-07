@@ -89,12 +89,13 @@ class CacheManager:
         except Exception as e:
             log.warning(f"Failed to save cache stats: {e}")
 
-    def _get_cache_path(self, key: str, intermediate: bool = False) -> Path:
+    def _get_cache_path(self, key: str, intermediate: bool = False, extension: str = '.mp4') -> Path:
         """Get cache file path with improved organization.
         
         Args:
             key: Cache key
             intermediate: Whether this is an intermediate result
+            extension: File extension to use (defaults to .mp4)
             
         Returns:
             Cache file path
@@ -109,7 +110,7 @@ class CacheManager:
             path = self.base_dir / subdir
             
         path.mkdir(exist_ok=True)
-        return path / f"{filename[2:]}.mp4"
+        return path / f"{filename[2:]}{extension}"
 
     def put(
         self,
@@ -132,7 +133,15 @@ class CacheManager:
         if self._should_cleanup():
             self.executor.submit(self.cleanup)
             
-        path = self._get_cache_path(key, intermediate)
+        # Determine extension based on data type
+        extension = '.mp4'  # default
+        if isinstance(data, str):
+            if data.endswith('.mp3'):
+                extension = '.mp3'
+            elif data.endswith('.wav'):
+                extension = '.wav'
+                
+        path = self._get_cache_path(key, intermediate, extension)
         
         try:
             # If data is a string and ends with .mp4, it's a video file path
