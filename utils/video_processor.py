@@ -450,6 +450,8 @@ class VideoProcessor:
         riddle_text: str,
         answer_text: str,
         output_path: str,
+        video_service: Any,  # VideoService instance
+        category: str,
         effects: Optional[List[str]] = None,
         transitions: Optional[List[str]] = None
     ) -> bool:
@@ -458,23 +460,8 @@ class VideoProcessor:
             temp_dir = os.path.join(os.path.dirname(output_path), "temp")
             os.makedirs(temp_dir, exist_ok=True)
             
-            resized_bg = os.path.join(temp_dir, "resized_bg.mp4")
-            
-            # Step 1: Resize background video
-            if not self.resize_video(
-                background_path,
-                resized_bg,
-                effects=effects
-            ):
-                raise ValueError("Failed to resize background video")
-            
-            # Verify resized video exists
-            if not os.path.exists(resized_bg):
-                raise ValueError(f"Resized video not found: {resized_bg}")
-            
-            # Step 2: Load video and audio clips
+            # Step 1: Load video and audio clips
             try:
-                video = VideoFileClip(resized_bg, audio=False)  # Disable audio for background
                 riddle_audio = AudioFileClip(riddle_audio_path)
                 answer_audio = AudioFileClip(answer_audio_path)
                 countdown_audio = AudioFileClip("assets/audio/countdown.mp3")
@@ -487,42 +474,47 @@ class VideoProcessor:
             thinking_time = 6  # Countdown duration
             answer_duration = answer_audio.duration + 3  # Add buffer for explanation
             
-            # Calculate total required duration
-            total_duration = question_duration + thinking_time + answer_duration
+            # Create video segments with different background videos
+            video_segments = []
             
-            # If background video is too short, loop it
-            if video.duration < total_duration:
-                video = video.loop(duration=total_duration)
-            
-            # Step 3: Create question segment
-            current_time = 0
-            question_segment = video.subclip(current_time, current_time + question_duration)
+            # Question segment - get a new background video
+            question_bg_path = video_service.get_video(category)
+            question_bg = VideoFileClip(question_bg_path, audio=False)
+            if question_bg.duration < question_duration:
+                question_bg = question_bg.loop(duration=question_duration)
+            else:
+                question_bg = question_bg.subclip(0, question_duration)
+            question_segment = question_bg.fl_image(lambda frame: self._create_text_overlay(frame, riddle_text))
             question_segment = question_segment.set_audio(riddle_audio)
-            question_segment = question_segment.fl_image(lambda frame: self._create_text_overlay(frame, riddle_text))
-            current_time += question_duration
+            video_segments.append(question_segment)
             
-            # Step 4: Create thinking time segment with countdown
-            thinking_segment = video.subclip(current_time, current_time + thinking_time)
-            # Play countdown audio twice (3 seconds each)
+            # Thinking segment - get a new background video
+            thinking_bg_path = video_service.get_video(category)
+            thinking_bg = VideoFileClip(thinking_bg_path, audio=False)
+            if thinking_bg.duration < thinking_time:
+                thinking_bg = thinking_bg.loop(duration=thinking_time)
+            else:
+                thinking_bg = thinking_bg.subclip(0, thinking_time)
+            thinking_segment = thinking_bg.fl_image(lambda frame: self._create_text_overlay(frame, "⏱️ Time to Think!"))
             countdown_audio_doubled = concatenate_audioclips([countdown_audio, countdown_audio])
             thinking_segment = thinking_segment.set_audio(countdown_audio_doubled)
-            thinking_segment = thinking_segment.fl_image(lambda frame: self._create_text_overlay(frame, "⏱️ Time to Think!"))
-            current_time += thinking_time
+            video_segments.append(thinking_segment)
             
-            # Step 5: Create answer segment with explanation
-            answer_segment = video.subclip(current_time, current_time + answer_duration)
-            # Add reveal sound before answer audio
+            # Answer segment - get a new background video
+            answer_bg_path = video_service.get_video(category)
+            answer_bg = VideoFileClip(answer_bg_path, audio=False)
+            if answer_bg.duration < answer_duration:
+                answer_bg = answer_bg.loop(duration=answer_duration)
+            else:
+                answer_bg = answer_bg.subclip(0, answer_duration)
+            answer_segment = answer_bg.fl_image(lambda frame: self._create_text_overlay(frame, f"The answer is:\n{answer_text}"))
             reveal_with_answer = concatenate_audioclips([reveal_audio, answer_audio])
             answer_segment = answer_segment.set_audio(reveal_with_answer)
-            answer_segment = answer_segment.fl_image(lambda frame: self._create_text_overlay(frame, f"The answer is:\n{answer_text}"))
+            video_segments.append(answer_segment)
             
-            # Step 6: Concatenate segments with crossfade
+            # Concatenate segments with crossfade
             final_video = concatenate_videoclips(
-                [
-                    question_segment,
-                    thinking_segment,
-                    answer_segment
-                ],
+                video_segments,
                 method="compose",
                 padding=-0.5  # Smooth crossfade
             )
@@ -539,19 +531,18 @@ class VideoProcessor:
             
             # Clean up
             try:
-                video.close()
                 riddle_audio.close()
                 answer_audio.close()
                 countdown_audio.close()
                 reveal_audio.close()
                 final_video.close()
+                for segment in video_segments:
+                    segment.close()
             except Exception as e:
                 self.logger.error(f"Error closing clips: {str(e)}")
             
             # Clean up temporary files
             try:
-                if os.path.exists(resized_bg):
-                    os.remove(resized_bg)
                 if os.path.exists(temp_dir):
                     import shutil
                     shutil.rmtree(temp_dir, ignore_errors=True)
@@ -565,7 +556,15 @@ class VideoProcessor:
             return False
     
     def _create_text_overlay(self, frame: np.ndarray, text: str) -> np.ndarray:
-        """Create consistent text overlay for all segments"""
+        """Create consistent text overlay for all segments with text wrapping and safe zones
+        
+        Args:
+            frame: Input frame
+            text: Text to overlay
+            
+        Returns:
+            Frame with text overlay
+        """
         result = frame.copy()
         
         # Add gradient background
@@ -576,23 +575,61 @@ class VideoProcessor:
             overlay[i, :] = [0, 0, 0]  # Black background
             cv2.addWeighted(overlay[i:i+1, :], alpha, result[i:i+1, :], 1-alpha, 0, result[i:i+1, :])
         
-        # Draw text
+        # Text settings
         font = cv2.FONT_HERSHEY_SIMPLEX
         font_scale = 1.8
         thickness = 2
         
-        lines = text.split('\n')
-        y = int(h * 0.4)
+        # Define safe zone (80% of width, centered)
+        safe_width = int(w * 0.8)
+        margin = (w - safe_width) // 2
         
+        # Split text into lines
+        lines = []
+        for paragraph in text.split('\n'):
+            words = paragraph.split()
+            current_line = []
+            current_width = 0
+            
+            for word in words:
+                word_size = cv2.getTextSize(word, font, font_scale, thickness)[0]
+                space_size = cv2.getTextSize(" ", font, font_scale, thickness)[0]
+                
+                # If adding this word would exceed safe width, start a new line
+                if current_width + word_size[0] + (len(current_line) * space_size[0]) > safe_width:
+                    lines.append(" ".join(current_line))
+                    current_line = [word]
+                    current_width = word_size[0]
+                else:
+                    current_line.append(word)
+                    current_width += word_size[0]
+            
+            if current_line:
+                lines.append(" ".join(current_line))
+            
+            # Add empty line between paragraphs if there are more paragraphs
+            if paragraph != text.split('\n')[-1]:
+                lines.append("")
+        
+        # Calculate total text height
+        line_height = cv2.getTextSize("A", font, font_scale, thickness)[0][1] + 20
+        total_height = len(lines) * line_height
+        
+        # Start drawing from vertical center
+        y = (h - total_height) // 2 + line_height
+        
+        # Draw each line
         for line in lines:
-            text_size = cv2.getTextSize(line, font, font_scale, thickness)[0]
-            x = (w - text_size[0]) // 2
+            if line:  # Skip empty lines (just adds spacing)
+                # Get line width for centering
+                text_size = cv2.getTextSize(line, font, font_scale, thickness)[0]
+                x = (w - text_size[0]) // 2
+                
+                # Draw outline
+                cv2.putText(result, line, (x, y), font, font_scale, (0, 0, 0), thickness * 3)
+                cv2.putText(result, line, (x, y), font, font_scale, (255, 255, 255), thickness)
             
-            # Draw outline
-            cv2.putText(result, line, (x, y), font, font_scale, (0, 0, 0), thickness * 3)
-            cv2.putText(result, line, (x, y), font, font_scale, (255, 255, 255), thickness)
-            
-            y += text_size[1] + 20
+            y += line_height
         
         return result
     
@@ -602,6 +639,8 @@ class VideoProcessor:
         riddle_segments: List[Dict],
         output_path: str,
         tts_engine: Any,  # ElevenLabs TTS engine
+        video_service: Any,  # VideoService instance
+        category: str,
         effects: Optional[List[str]] = None,
         transitions: Optional[List[str]] = None
     ) -> bool:
@@ -629,14 +668,8 @@ class VideoProcessor:
                     os.rename(question_vo, cache_path)
                     question_number_audios.append(AudioFileClip(cache_path))
             
-            # Step 2: Resize background video
-            resized_bg = os.path.join(temp_dir, "resized_bg.mp4")
-            if not self.resize_video(background_path, resized_bg, effects=effects):
-                raise ValueError("Failed to resize background video")
-            
-            # Step 3: Load all media
+            # Step 2: Load all media
             try:
-                video = VideoFileClip(resized_bg, audio=False)
                 countdown_audio = AudioFileClip("assets/audio/countdown.mp3")
                 reveal_audio = AudioFileClip("assets/audio/reveal.mp3")
                 hook_audio_clip = AudioFileClip(str(hook_audio))
@@ -653,7 +686,7 @@ class VideoProcessor:
             
             # Calculate total duration needed
             hook_duration = max(5, hook_audio_clip.duration + 1)  # At least 5 seconds or audio duration + 1s
-            cta_duration = max(4, cta_audio_clip.duration + 1)  # At least 4 seconds or audio duration + 1s
+            cta_duration = max(4, cta_audio_clip.duration + 1)
             
             total_duration = hook_duration
             segment_timings = []
@@ -679,45 +712,83 @@ class VideoProcessor:
             
             total_duration += cta_duration
             
-            # Ensure background video is long enough
-            if video.duration < total_duration:
-                video = video.loop(duration=total_duration)
+            # Create video segments with different background videos
+            video_segments = []
             
-            def make_frame(t):
-                # Get the base frame
-                frame = video.get_frame(t)
-                
-                # Hook section
-                if t < hook_duration:
-                    hook_text = "🧠 Can You Solve These Mind-Bending Riddles?"
-                    return self._create_text_overlay(frame, hook_text)
-                
-                # CTA section
-                if t >= total_duration - cta_duration:
-                    cta_text = "👆 Follow for Daily Riddles!\n❤️ Like if You Got Them Right!"
-                    return self._create_text_overlay(frame, cta_text)
-                
-                # Riddle sections
-                for i, timing in enumerate(segment_timings):
-                    if timing['number_start'] <= t < timing['number_end']:
-                        return self._create_text_overlay(frame, f"Question #{i+1}")
-                    elif timing['question_start'] <= t < timing['question_end']:
-                        return self._create_text_overlay(frame, riddle_segments[i]['riddle_text'])
-                    elif timing['thinking_start'] <= t < timing['thinking_end']:
-                        # Calculate countdown number (6 to 1)
-                        elapsed = t - timing['thinking_start']
-                        countdown = 6 - int(elapsed)
-                        if countdown < 1:
-                            countdown = 1
-                        return self._create_text_overlay(frame, f"⏱️ {countdown}")
-                    elif timing['answer_start'] <= t < timing['answer_end']:
-                        return self._create_text_overlay(frame, f"The answer is:\n{riddle_segments[i]['answer_text']}")
-                
-                return frame
+            # Hook section - get a new background video
+            hook_bg_path = video_service.get_video(category)
+            hook_bg = VideoFileClip(hook_bg_path, audio=False)
+            if hook_bg.duration < hook_duration:
+                hook_bg = hook_bg.loop(duration=hook_duration)
+            else:
+                hook_bg = hook_bg.subclip(0, hook_duration)
+            hook_segment = hook_bg.fl_image(lambda frame: self._create_text_overlay(frame, hook_text))
+            video_segments.append(hook_segment)
             
-            # Create the final video clip
-            final_video = VideoFileClip(resized_bg, audio=False).set_duration(total_duration)
-            final_video = final_video.set_make_frame(make_frame)
+            # Riddle sections
+            for i, timing in enumerate(segment_timings):
+                # Get new background videos for each segment
+                number_bg_path = video_service.get_video(category)
+                question_bg_path = video_service.get_video(category)
+                thinking_bg_path = video_service.get_video(category)
+                answer_bg_path = video_service.get_video(category)
+                
+                # Question number segment
+                number_duration = timing['number_end'] - timing['number_start']
+                number_bg = VideoFileClip(number_bg_path, audio=False)
+                if number_bg.duration < number_duration:
+                    number_bg = number_bg.loop(duration=number_duration)
+                else:
+                    number_bg = number_bg.subclip(0, number_duration)
+                number_segment = number_bg.fl_image(lambda frame: self._create_text_overlay(frame, f"Question #{i+1}"))
+                video_segments.append(number_segment)
+                
+                # Question segment
+                question_duration = timing['question_end'] - timing['question_start']
+                question_bg = VideoFileClip(question_bg_path, audio=False)
+                if question_bg.duration < question_duration:
+                    question_bg = question_bg.loop(duration=question_duration)
+                else:
+                    question_bg = question_bg.subclip(0, question_duration)
+                question_segment = question_bg.fl_image(lambda frame: self._create_text_overlay(frame, riddle_segments[i]['riddle_text']))
+                video_segments.append(question_segment)
+                
+                # Thinking segment
+                thinking_duration = timing['thinking_end'] - timing['thinking_start']
+                thinking_bg = VideoFileClip(thinking_bg_path, audio=False)
+                if thinking_bg.duration < thinking_duration:
+                    thinking_bg = thinking_bg.loop(duration=thinking_duration)
+                else:
+                    thinking_bg = thinking_bg.subclip(0, thinking_duration)
+                thinking_segment = thinking_bg.fl_image(
+                    lambda frame: self._create_text_overlay(frame, "⏱️ Time to Think!")
+                )
+                video_segments.append(thinking_segment)
+                
+                # Answer segment
+                answer_duration = timing['answer_end'] - timing['answer_start']
+                answer_bg = VideoFileClip(answer_bg_path, audio=False)
+                if answer_bg.duration < answer_duration:
+                    answer_bg = answer_bg.loop(duration=answer_duration)
+                else:
+                    answer_bg = answer_bg.subclip(0, answer_duration)
+                answer_segment = answer_bg.fl_image(
+                    lambda frame: self._create_text_overlay(frame, f"The answer is:\n{riddle_segments[i]['answer_text']}")
+                )
+                video_segments.append(answer_segment)
+            
+            # CTA section - get a new background video
+            cta_bg_path = video_service.get_video(category)
+            cta_bg = VideoFileClip(cta_bg_path, audio=False)
+            if cta_bg.duration < cta_duration:
+                cta_bg = cta_bg.loop(duration=cta_duration)
+            else:
+                cta_bg = cta_bg.subclip(0, cta_duration)
+            cta_segment = cta_bg.fl_image(lambda frame: self._create_text_overlay(frame, "👆 Follow for Daily Riddles!\n❤️ Like if You Got Them Right!"))
+            video_segments.append(cta_segment)
+            
+            # Concatenate all video segments
+            final_video = concatenate_videoclips(video_segments, method="compose")
             
             # Create audio segments
             audio_segments = []
@@ -761,7 +832,6 @@ class VideoProcessor:
             
             # Clean up
             try:
-                video.close()
                 countdown_audio.close()
                 reveal_audio.close()
                 hook_audio_clip.close()
@@ -772,6 +842,8 @@ class VideoProcessor:
                 for riddle_audio, answer_audio in riddle_audios:
                     riddle_audio.close()
                     answer_audio.close()
+                for segment in video_segments:
+                    segment.close()
             except Exception as e:
                 self.logger.error(f"Error closing clips: {str(e)}")
             

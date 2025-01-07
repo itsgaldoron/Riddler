@@ -66,8 +66,8 @@ def validate_duration(duration: int) -> bool:
     Raises:
         ValueError: If duration is invalid
     """
-    min_duration = 30
-    max_duration = 60
+    min_duration = 3
+    max_duration = 3
     
     if not isinstance(duration, int):
         raise ValueError("Duration must be an integer")

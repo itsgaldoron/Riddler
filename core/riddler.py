@@ -184,6 +184,8 @@ class Riddler:
                 riddle_text=str(riddle_data["riddle"]),
                 answer_text=str(riddle_data["answer"]),
                 output_path=str(output_path),
+                video_service=self.video,
+                category=category,
                 effects=effects,
                 transitions=transitions
             )
@@ -306,7 +308,9 @@ class Riddler:
                 background_path=str(background_path),
                 riddle_segments=riddle_segments,
                 output_path=output_path,
-                tts_engine=self.tts
+                tts_engine=self.tts,
+                video_service=self.video,
+                category=category
             )
             
             if not success:

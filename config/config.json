@@ -17,8 +17,8 @@
             },
             "fps": 30,
             "preferred_orientation": "portrait",
-            "min_duration": 15,
-            "max_duration": 60
+            "min_duration": 1,
+            "max_duration": 3
         },
         "tiktok_optimization": {
             "aspect_ratio": "9:16",

@@ -19,8 +19,8 @@ class VideoService:
     
     def __init__(
         self,
-        min_duration: int = 30,
-        max_duration: int = 60,
+        min_duration: int = 3,
+        max_duration: int = 3,
         min_width: int = 1080,
         min_height: int = 1920,
         orientation: str = "portrait",
