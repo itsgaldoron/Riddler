@@ -8,7 +8,6 @@ from utils.cache import CacheManager
 from utils.helpers import generate_cache_key
 from utils.validators import validate_category, validate_difficulty
 from config.exceptions import OpenAIError
-from core.types import RiddleReasoning
 import json
 import hashlib
 

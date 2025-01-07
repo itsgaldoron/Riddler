@@ -5,7 +5,7 @@ import os
 import sys
 from typing import List, Dict
 from core.riddler import Riddler
-from core.exceptions import RiddlerException
+from config.exceptions import RiddlerException
 
 def parse_args():
     """Parse command line arguments
