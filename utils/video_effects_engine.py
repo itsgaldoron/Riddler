@@ -3,8 +3,7 @@
 import cv2
 import numpy as np
 import os
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Any
 from moviepy.editor import VideoFileClip, AudioFileClip, concatenate_videoclips, CompositeAudioClip
 from utils.logger import log, StructuredLogger
 from config.config import Config
@@ -58,14 +57,11 @@ class VideoEffectsEngine:
     
     def createMultiRiddleVideo(
         self,
-        background_path: str,
         riddle_segments: List[Dict],
         output_path: str,
         tts_engine: Any,  # ElevenLabs TTS engine
         video_service: Any,  # VideoService instance
         category: str,
-        effects: Optional[List[str]] = None,
-        transitions: Optional[List[str]] = None
     ) -> bool:
         """Create a multi-riddle video with effects"""
         # Create temporary directory for intermediate files

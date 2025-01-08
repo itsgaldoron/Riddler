@@ -1,10 +1,6 @@
 """Core Riddler implementation"""
 
-import os
-import random
-from typing import Dict, List, Optional, Union
-from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Dict, List, Optional
 from utils.logger import log, StructuredLogger
 from utils.helpers import ensure_directory, get_api_key
 from services.openai_service import OpenAIService
@@ -165,12 +161,8 @@ class Riddler:
             # Sort segments by index to maintain order
             riddle_segments.sort(key=lambda x: x['index'])
             
-            # Get background video
-            background = self.video.get_video(category)
-            
             # Create final video
             success = self.effects_engine.createMultiRiddleVideo(
-                background_path=str(background),
                 riddle_segments=riddle_segments,
                 output_path=output_path,
                 tts_engine=self.tts,
