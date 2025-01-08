@@ -4,9 +4,8 @@ import cv2
 import numpy as np
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union, Any
-from moviepy.editor import VideoFileClip, AudioFileClip, TextClip, CompositeVideoClip, concatenate_videoclips, concatenate_audioclips, CompositeAudioClip
-from moviepy.video.tools.subtitles import SubtitlesClip
+from typing import Dict, List, Optional, Tuple, Any
+from moviepy.editor import VideoFileClip, AudioFileClip, concatenate_videoclips, CompositeAudioClip
 from utils.logger import log, StructuredLogger
 from config.config import Config
 import random
@@ -22,15 +21,7 @@ class VideoEffectsEngine:
         fps: Optional[int] = None,
         logger: Optional[StructuredLogger] = None
     ):
-        """Initialize video effects engine
-        
-        Args:
-            output_dir: Output directory
-            width: Video width (defaults to config)
-            height: Video height (defaults to config)
-            fps: Frames per second (defaults to config)
-            logger: Logger instance
-        """
+        """Initialize video effects engine"""
         self.config = Config()
         self.logger = logger or log
         
@@ -51,17 +42,20 @@ class VideoEffectsEngine:
             "position": self.config.get("video.text.position", "smart")
         }
         
-        # Load effects settings from config
-        self.visual_effects_config = {
-            "zoom": {
-                "enabled": self.config.get("video.effects.zoom.enabled", True),
-                "max_scale": self.config.get("video.effects.zoom.max_scale", 1.2)
-            }
-        }
-        
         # Create output directory
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(output_dir, exist_ok=True) 
+    
+    def _create_text_overlay_function(self, text: str):
+        """Create a function that will overlay text on a frame
         
+        Args:
+            text: Text to overlay
+            
+        Returns:
+            Function that takes a frame and returns a frame with text overlay
+        """
+        return lambda frame: self._create_text_overlay(frame, text)
+    
     def createMultiRiddleVideo(
         self,
         background_path: str,
@@ -73,21 +67,11 @@ class VideoEffectsEngine:
         effects: Optional[List[str]] = None,
         transitions: Optional[List[str]] = None
     ) -> bool:
-        """Create a multi-riddle video with effects
+        """Create a multi-riddle video with effects"""
+        # Create temporary directory for intermediate files
+        temp_dir = os.path.join(os.path.dirname(output_path), "temp_video_files")
+        os.makedirs(temp_dir, exist_ok=True)
         
-        Args:
-            background_path: Path to background video
-            riddle_segments: List of riddle segments
-            output_path: Output video path
-            tts_engine: TTS engine instance
-            video_service: Video service instance
-            category: Riddle category
-            effects: List of effects to apply
-            transitions: List of transitions to use
-            
-        Returns:
-            True if successful
-        """
         try:
             # Generate hook and CTA audio
             hook_text = random.choice(self.config.get("riddle.format.hook_patterns"))
@@ -103,7 +87,7 @@ class VideoEffectsEngine:
                 if os.path.exists(cache_path):
                     question_number_audios.append(AudioFileClip(cache_path))
                 else:
-                    question_vo = tts_engine.generate_speech(f"Question number {i+1}")
+                    question_vo = tts_engine.generate_speech(f"Question {i+1}")
                     os.rename(question_vo, cache_path)
                     question_number_audios.append(AudioFileClip(cache_path))
             
@@ -114,12 +98,31 @@ class VideoEffectsEngine:
                 hook_audio_clip = AudioFileClip(str(hook_audio))
                 cta_audio_clip = AudioFileClip(str(cta_audio))
                 
-                # Load all riddle audios
-                riddle_audios = []
-                for segment in riddle_segments:
-                    riddle_audio = AudioFileClip(segment['riddle_audio'])
-                    answer_audio = AudioFileClip(segment['answer_audio'])
-                    riddle_audios.append((riddle_audio, answer_audio))
+                # Process riddle segments in order
+                processed_segments = []
+                for i, segment in enumerate(riddle_segments):
+                    # Use the audio files that were passed in
+                    riddle_audio = AudioFileClip(str(segment['riddle_audio']))
+                    answer_audio = AudioFileClip(str(segment['answer_audio']))
+                    
+                    processed_segments.append({
+                        'index': i,
+                        'riddle_text': segment['riddle'],
+                        'answer_text': segment['answer'],
+                        'riddle_audio': riddle_audio,
+                        'answer_audio': answer_audio
+                    })
+                
+                # Sort segments by index to maintain order
+                processed_segments.sort(key=lambda x: x['index'])
+                
+                # Extract audio clips in order
+                riddle_audios = [(s['riddle_audio'], s['answer_audio']) for s in processed_segments]
+                riddle_data = [{
+                    'riddle_text': s['riddle_text'],
+                    'answer_text': s['answer_text']
+                } for s in processed_segments]
+                
             except Exception as e:
                 raise ValueError(f"Failed to load media files: {str(e)}")
             
@@ -169,10 +172,10 @@ class VideoEffectsEngine:
                 hook_bg = hook_bg.loop(duration=hook_duration)
             else:
                 hook_bg = hook_bg.subclip(0, hook_duration)
-            hook_segment = hook_bg.fl_image(lambda frame: self._create_text_overlay(frame, hook_text))
+            hook_segment = hook_bg.fl_image(self._create_text_overlay_function(hook_text))
             video_segments.append(hook_segment)
             
-            # Riddle sections
+            # Riddle sections - use riddle_data to maintain order
             for i, timing in enumerate(segment_timings):
                 # Get new background videos for each segment
                 number_bg_path = video_service.get_video(category)
@@ -187,7 +190,8 @@ class VideoEffectsEngine:
                     number_bg = number_bg.loop(duration=number_duration)
                 else:
                     number_bg = number_bg.subclip(0, number_duration)
-                number_segment = number_bg.fl_image(lambda frame: self._create_text_overlay(frame, f"Question #{i+1}"))
+                number_text = f"Question {i+1}"
+                number_segment = number_bg.fl_image(self._create_text_overlay_function(number_text))
                 video_segments.append(number_segment)
                 
                 # Question segment
@@ -197,7 +201,7 @@ class VideoEffectsEngine:
                     question_bg = question_bg.loop(duration=question_duration)
                 else:
                     question_bg = question_bg.subclip(0, question_duration)
-                question_segment = question_bg.fl_image(lambda frame: self._create_text_overlay(frame, riddle_segments[i]['riddle_text']))
+                question_segment = question_bg.fl_image(self._create_text_overlay_function(riddle_data[i]['riddle_text']))
                 video_segments.append(question_segment)
                 
                 # Thinking segment
@@ -207,9 +211,7 @@ class VideoEffectsEngine:
                     thinking_bg = thinking_bg.loop(duration=thinking_duration)
                 else:
                     thinking_bg = thinking_bg.subclip(0, thinking_duration)
-                thinking_segment = thinking_bg.fl_image(
-                    lambda frame: self._create_text_overlay(frame, "⏱️ Time to Think!")
-                )
+                thinking_segment = thinking_bg.fl_image(self._create_text_overlay_function("⏱️ Time to Think!"))
                 video_segments.append(thinking_segment)
                 
                 # Answer segment
@@ -219,9 +221,8 @@ class VideoEffectsEngine:
                     answer_bg = answer_bg.loop(duration=answer_duration)
                 else:
                     answer_bg = answer_bg.subclip(0, answer_duration)
-                answer_segment = answer_bg.fl_image(
-                    lambda frame: self._create_text_overlay(frame, f"The answer is:\n{riddle_segments[i]['answer_text']}")
-                )
+                answer_text = f"The answer is:\n{riddle_data[i]['answer_text']}"
+                answer_segment = answer_bg.fl_image(self._create_text_overlay_function(answer_text))
                 video_segments.append(answer_segment)
             
             # CTA section - get a new background video
@@ -231,7 +232,7 @@ class VideoEffectsEngine:
                 cta_bg = cta_bg.loop(duration=cta_duration)
             else:
                 cta_bg = cta_bg.subclip(0, cta_duration)
-            cta_segment = cta_bg.fl_image(lambda frame: self._create_text_overlay(frame, "👆 Follow for Daily Riddles!\n❤️ Like if You Got Them Right!"))
+            cta_segment = cta_bg.fl_image(self._create_text_overlay_function("👆 Follow for Daily Riddles!\n❤️ Like if You Got Them Right!"))
             video_segments.append(cta_segment)
             
             # Concatenate all video segments
@@ -263,8 +264,10 @@ class VideoEffectsEngine:
                 audio_segments.append(reveal_audio.copy().set_start(answer_start))
                 audio_segments.append(answer_audio.set_start(answer_start + reveal_audio.duration))
             
-            # Combine all audio
+            # Combine audio segments
             final_audio = CompositeAudioClip(audio_segments)
+            
+            # Set audio to video
             final_video = final_video.set_audio(final_audio)
             
             # Write final video
@@ -274,7 +277,9 @@ class VideoEffectsEngine:
                 audio_codec='aac',
                 fps=self.fps,
                 preset='ultrafast',
-                threads=4
+                threads=4,
+                temp_audiofile="temp-audio.m4a",
+                remove_temp=True
             )
             
             # Clean up
@@ -306,18 +311,10 @@ class VideoEffectsEngine:
             
         except Exception as e:
             self.logger.error(f"Error creating multi-riddle video: {str(e)}")
-            return False 
+            return False
     
     def _create_text_overlay(self, frame: np.ndarray, text: str) -> np.ndarray:
-        """Create consistent text overlay for all segments with text wrapping and safe zones
-        
-        Args:
-            frame: Input frame
-            text: Text to overlay
-            
-        Returns:
-            Frame with text overlay
-        """
+        """Create consistent text overlay for all segments with text wrapping and safe zones"""
         result = frame.copy()
         
         # Add gradient background
@@ -384,140 +381,4 @@ class VideoEffectsEngine:
             
             y += line_height
         
-        return result
-    
-    def createAnimatedOverlay(
-        self,
-        text: str,
-        duration: float,
-        position: str,
-        animation: str = "fade",
-        word_by_word: bool = False
-    ) -> Union[TextClip, CompositeVideoClip]:
-        """Create animated overlay with text"""
-        if not word_by_word:
-            return self._createSingleOverlayAnimation(
-                text, duration, position, animation
-            )
-        
-        words = text.split()
-        word_duration = duration / len(words)
-        word_clips = []
-        
-        for i, word in enumerate(words):
-            clip = self._createSingleOverlayAnimation(
-                word,
-                duration - (i * word_duration),
-                position,
-                animation
-            ).set_start(i * word_duration)
-            word_clips.append(clip)
-        
-        return CompositeVideoClip(word_clips)
-    
-    def _createSingleOverlayAnimation(
-        self,
-        text: str,
-        duration: float,
-        position: str,
-        animation: str
-    ) -> TextClip:
-        """Create single overlay animation"""
-        clip = TextClip(
-            text,
-            fontsize=self.text_config["font_size"],
-            color=self.text_config["color"],
-            font=self.text_config["font_family"],
-            bg_color=f"rgba(0,0,0,{self.text_config['background_opacity']})"
-        ).set_duration(duration)
-        
-        if animation == "fade":
-            clip = clip.fadein(0.5)
-        elif animation == "slide_up":
-            clip = clip.set_position(
-                lambda t: (
-                    position[0],
-                    position[1] + (100 * (1 - min(t, 0.5) * 2))
-                )
-            )
-        elif animation == "scale_up":
-            clip = clip.set_position(position).resize(
-                lambda t: 1 + (0.5 * (1 - min(t, 0.5) * 2))
-            )
-        elif animation == "bounce":
-            clip = clip.set_position(
-                lambda t: (
-                    position[0],
-                    position[1] + (20 * abs(np.sin(t * np.pi * 2)))
-                )
-            )
-        
-        return clip
-    
-    def createInteractionPrompt(
-        self,
-        duration: float,
-        position: str
-    ) -> TextClip:
-        """Create interactive user prompt with animation"""
-        return self.createAnimatedOverlay(
-            "⏸️ Pause now to think!",
-            duration=duration,
-            position=position,
-            animation="bounce"
-        )
-    
-    def createCountdown(
-        self,
-        duration: float,
-        position: str
-    ) -> CompositeVideoClip:
-        """Create countdown timer with effects"""
-        clips = []
-        
-        for i in range(int(duration), 0, -1):
-            clip = self.createAnimatedOverlay(
-                str(i),
-                duration=1.0,
-                position=position,
-                animation="scale_up"
-            ).set_start(duration - i)
-            clips.append(clip)
-        
-        return CompositeVideoClip(clips)
-    
-    def applyDynamicZoom(self, video: VideoFileClip) -> VideoFileClip:
-        """Apply dynamic zoom effect to video"""
-        if not self.visual_effects_config["zoom"]["enabled"]:
-            return video
-        
-        return video.resize(
-            lambda t: 1 + (
-                (self.visual_effects_config["zoom"]["max_scale"] - 1)
-                * (1 - np.cos(t * np.pi / video.duration)) / 2
-            )
-        )
-    
-    def calculateOptimalPosition(
-        self,
-        video: VideoFileClip,
-        text: str
-    ) -> Tuple[int, int]:
-        """Calculate optimal position for overlay"""
-        if self.text_config["position"] != "smart":
-            return self._get_fixed_position(video.size)
-        
-        # Get frame from middle of video
-        frame = video.get_frame(video.duration / 2)
-        
-        # Smart positioning logic
-        # - Face detection
-        # - Busy area detection
-        # - Preferred zone selection
-        
-        # For now, return center position
-        return (video.w // 2, video.h // 2)
-    
-    def _get_fixed_position(self, size: Tuple[int, int]) -> Tuple[int, int]:
-        """Get fixed position based on video size"""
-        return (size[0] // 2, size[1] // 2) 
+        return result 

@@ -249,63 +249,45 @@ class Riddler:
         self,
         riddles: List[Dict],
         category: str,
-        output_path: Optional[str] = None
+        output_path: str
     ) -> str:
-        """Create a video containing multiple riddles
+        """Create a multi-riddle video
         
         Args:
             riddles: List of riddle data dictionaries
             category: Riddle category
-            output_path: Optional output path
+            output_path: Output path
             
         Returns:
             Path to created video
         """
         try:
-            if not riddles:
-                raise RiddlerException("No riddles provided")
+            # Create riddle segments with proper ordering
+            riddle_segments = []
+            for i, riddle in enumerate(riddles):
+                # Generate speech for riddle and answer
+                riddle_audio = self.tts.generate_speech(riddle["riddle"])
+                answer_audio = self.tts.generate_speech(f"The answer is: {riddle['answer']}")
+                
+                # Create segment with index for ordering
+                segment = {
+                    'index': i,
+                    'riddle': riddle["riddle"],
+                    'answer': riddle["answer"],
+                    'riddle_audio': riddle_audio,
+                    'answer_audio': answer_audio
+                }
+                riddle_segments.append(segment)
             
-            # Generate output path if not provided
-            if output_path is None:
-                output_path = os.path.join(
-                    self.output_dir,
-                    f"riddle_{category}_{os.urandom(4).hex()}.mp4"
-                )
-            
-            # Create output directory if it doesn't exist
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            # Sort segments by index to maintain order
+            riddle_segments.sort(key=lambda x: x['index'])
             
             # Get background video
-            background_path = self.video.get_video(category)
-            if not background_path:
-                raise RiddlerException("Failed to get background video")
+            background = self.video.get_video(category)
             
-            # Process each riddle
-            riddle_segments = []
-            for riddle in riddles:
-                # Generate speech for riddle and answer
-                riddle_audio = self.tts.generate_speech(riddle['riddle'])
-                answer_audio = self.tts.generate_speech(
-                    f"{riddle['answer']}. {riddle.get('explanation', '')}"
-                )
-                
-                if not riddle_audio or not answer_audio:
-                    self.logger.warning(f"Failed to generate audio for riddle")
-                    continue
-                
-                riddle_segments.append({
-                    'riddle_audio': str(riddle_audio),
-                    'answer_audio': str(answer_audio),
-                    'riddle_text': riddle['riddle'],
-                    'answer_text': riddle['answer']
-                })
-            
-            if not riddle_segments:
-                raise RiddlerException("Failed to process any riddles")
-            
-            # Create multi-riddle video
+            # Create final video
             success = self.effects_engine.createMultiRiddleVideo(
-                background_path=str(background_path),
+                background_path=str(background),
                 riddle_segments=riddle_segments,
                 output_path=output_path,
                 tts_engine=self.tts,
