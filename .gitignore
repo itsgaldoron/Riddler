@@ -45,3 +45,4 @@ venv/
 logs/
 metrics/
 cache/
+temp-audio.m4a.log

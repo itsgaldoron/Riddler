@@ -40,9 +40,8 @@ class Riddler:
         
         # Initialize services
         self.openai = OpenAIService(
-            api_key=get_api_key("openai"),
-            model=self.config.get("openai.model", "gpt-4"),
-            temperature=self.config.get("openai.temperature", 0.7)
+            config=self.config,
+            api_key=get_api_key("openai")
         )
         
         self.tts = TTSService(

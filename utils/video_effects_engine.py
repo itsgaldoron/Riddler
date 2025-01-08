@@ -273,13 +273,23 @@ class VideoEffectsEngine:
             # Write final video
             final_video.write_videofile(
                 output_path,
-                codec='libx264',
+                codec='h264_videotoolbox',  # Use Apple Silicon hardware encoder
                 audio_codec='aac',
                 fps=self.fps,
                 preset='ultrafast',
-                threads=4,
+                threads=10,  # Use all available cores
                 temp_audiofile="temp-audio.m4a",
-                remove_temp=True
+                remove_temp=True,
+                ffmpeg_params=[
+                    "-b:v", "8000k",  # High bitrate for quality
+                    "-maxrate", "10000k",
+                    "-bufsize", "20000k",
+                    "-movflags", "+faststart",  # Enable streaming optimization
+                    "-tune", "zerolatency",  # Minimize encoding latency
+                    "-tag:v", "avc1"  # Ensure compatibility
+                ],
+                write_logfile=True,
+                logger="bar"
             )
             
             # Clean up

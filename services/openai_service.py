@@ -8,6 +8,7 @@ from utils.cache import CacheManager
 from utils.helpers import generate_cache_key
 from utils.validators import validate_category, validate_difficulty
 from config.exceptions import OpenAIError
+from config.config import Config
 import json
 import hashlib
 
@@ -49,80 +50,35 @@ class OpenAIService:
     
     def __init__(
         self,
+        config: Config,
         api_key: Optional[str] = None,
-        model: str = "gpt-4-turbo-preview",
-        temperature: float = 0.7,
-        max_tokens: int = 500,
-        max_attempts: int = 3,
         logger: Optional[StructuredLogger] = None,
-        cache_dir: str = "cache/riddles"
     ):
         """Initialize OpenAI service.
         
         Args:
+            config: Config instance
             api_key: OpenAI API key (defaults to env var)
-            model: GPT model to use
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens per request
-            max_attempts: Maximum generation attempts
             logger: Logger instance
-            cache_dir: Cache directory
         """
+        self.config = config
         self.api_key = api_key or os.getenv("RIDDLER_OPENAI_API_KEY")
         if not self.api_key:
             raise OpenAIError("OpenAI API key not found")
             
         self.client = OpenAI(api_key=self.api_key)
-        self.model = model
-        self.temperature = temperature
-        self.max_tokens = max_tokens
-        self.max_attempts = max_attempts
+        self.model = self.config.get("openai.model", "gpt-4o-2024-08-06")
+        self.temperature = self.config.get("openai.temperature", 0.7)
+        self.max_tokens = self.config.get("openai.max_tokens", 500)
+        self.max_attempts = self.config.get("openai.max_attempts", 3)
         self.logger = logger or log
+        
+        cache_dir = self.config.get("openai.cache_dir", "cache/riddles")
         self.cache = CacheManager(cache_dir)
         
-        # Load category templates
-        self.templates = {
-            "geography": {
-                "system_prompt": "You are a geography expert creating engaging riddles about countries, landmarks, and geographical features.",
-                "example_format": "I have cities but no houses, rivers but no water, forests but no trees. What am I? Answer: A map"
-            },
-            "math": {
-                "system_prompt": "You are a mathematics expert creating riddles that make math fun and engaging.",
-                "example_format": "The more you take away, the larger I become. What am I? Answer: A hole"
-            },
-            "physics": {
-                "system_prompt": "You are a physics expert creating riddles about physical phenomena and scientific concepts.",
-                "example_format": "I am faster than light but cannot escape a mirror. What am I? Answer: A reflection"
-            },
-            "history": {
-                "system_prompt": "You are a history expert creating riddles about historical events, figures, and discoveries.",
-                "example_format": "I was signed in 1776, I declared something great, I helped make a nation, What date am I? Answer: July 4th"
-            },
-            "logic": {
-                "system_prompt": "You are a logic expert creating riddles that challenge the mind with deductive reasoning.",
-                "example_format": "Two fathers and two sons went fishing together. They caught three fish which they shared equally. How is this possible? Answer: There were only three people - a grandfather, his son, and his grandson"
-            },
-            "wordplay": {
-                "system_prompt": "You are a wordsmith creating riddles that play with language, puns, and double meanings.",
-                "example_format": "What has keys but no locks, space but no room, and you can enter but not go in? Answer: A keyboard"
-            }
-        }
-        
-        # Difficulty configurations
-        self.difficulty_levels = {
-            "easy": {
-                "complexity": 0.3,
-                "educational_level": "elementary"
-            },
-            "medium": {
-                "complexity": 0.6,
-                "educational_level": "high_school"
-            },
-            "hard": {
-                "complexity": 0.9,
-                "educational_level": "college"
-            }
-        }
+        # Load templates and difficulty levels from config
+        self.templates = self.config.get("openai.riddle_generation.templates", {})
+        self.difficulty_levels = self.config.get("openai.riddle_generation.difficulty_levels", {})
         
     def generate_riddle(
         self,
@@ -453,4 +409,5 @@ Return your response as a JSON object with the following structure:
         return prompt
 
 # Initialize global OpenAI service
-openai_service = OpenAIService() 
+config = Config()
+openai_service = OpenAIService(config=config) 

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from concurrent.futures import ThreadPoolExecutor
 from utils.logger import log
+from config.config import Config
 
 class CacheManager:
     """Manages caching of data with compression and organization."""
@@ -15,8 +16,8 @@ class CacheManager:
         self,
         base_dir: str = "cache",
         intermediate_dir: str = "cache/intermediate",
-        max_size: int = 10 * 1024 * 1024 * 1024,  # 10GB
-        cleanup_threshold: float = 0.9,
+        max_size: Optional[int] = None,
+        cleanup_threshold: Optional[float] = None,
         max_workers: int = 4
     ):
         """Initialize cache manager.
@@ -28,10 +29,15 @@ class CacheManager:
             cleanup_threshold: Cleanup threshold (0-1)
             max_workers: Maximum number of worker threads
         """
+        # Load config
+        self.config = Config()
+        
         self.base_dir = Path(base_dir)
         self.intermediate_dir = Path(intermediate_dir)
-        self.max_size = max_size
-        self.cleanup_threshold = cleanup_threshold
+        
+        # Use config values or defaults
+        self.max_size = max_size or self.config.get("cache.max_cache_size", 10 * 1024 * 1024 * 1024)  # Default 10GB
+        self.cleanup_threshold = cleanup_threshold or self.config.get("cache.cleanup_threshold", 0.9)
         
         # Create directories
         self.base_dir.mkdir(parents=True, exist_ok=True)

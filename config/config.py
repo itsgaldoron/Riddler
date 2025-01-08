@@ -66,6 +66,7 @@ class Config:
                 value = value[k]
             return value
         except (KeyError, TypeError):
+            log.info(f"Config key '{key}' not found, using default value: {default}")
             return default
     
     def set(self, key: str, value: Any) -> None:

@@ -9,6 +9,16 @@
         "language": "en-US"
     },
     "video": {
+        "min_duration": 30,
+        "max_duration": 60,
+        "min_width": 1080,
+        "min_height": 1920,
+        "orientation": "portrait",
+        "resolution": {
+            "width": 1080,
+            "height": 1920
+        },
+        "fps": 30,
         "pexels": {
             "categories": ["landscape", "mountains", "ocean"],
             "resolution": {
@@ -44,11 +54,9 @@
             "max_segment": 3
         },
         "tiktok_optimization": {
-            "aspect_ratio": "9:16",
             "target_duration": 27,
             "hook_duration": 3,
             "end_screen_duration": 2,
-            "auto_captions": true,
             "sound_effects": {
                 "enabled": true,
                 "background_music_volume": 0.1,
@@ -65,12 +73,7 @@
             "color": "#FFFFFF",
             "background_opacity": 0.6,
             "padding": 20,
-            "position": "smart",
-            "smart_positioning": {
-                "avoid_faces": true,
-                "avoid_busy_areas": true,
-                "preferred_zones": ["center", "lower_third"]
-            }
+            "position": "smart"
         }
     },
     "cache": {
@@ -121,6 +124,8 @@
         "model": "gpt-4o-2024-08-06",
         "temperature": 0.7,
         "max_tokens": 500,
+        "max_attempts": 3,
+        "cache_dir": "cache/riddles",
         "riddle_generation": {
             "categories": [
                 "geography",
@@ -162,24 +167,13 @@
                     "example_format": "I was signed in 1776, I declared something great, I helped make a nation, What date am I? Answer: July 4th"
                 },
                 "logic": {
-                    "system_prompt": "You are a logic expert creating riddles that challenge critical thinking and problem-solving.",
-                    "example_format": "What comes once in a minute, twice in a moment, but never in a thousand years? Answer: The letter M"
+                    "system_prompt": "You are a logic expert creating riddles that challenge the mind with deductive reasoning.",
+                    "example_format": "Two fathers and two sons went fishing together. They caught three fish which they shared equally. How is this possible? Answer: There were only three people - a grandfather, his son, and his grandson"
                 },
                 "wordplay": {
-                    "system_prompt": "You are a wordplay expert creating riddles that play with language and meaning.",
-                    "example_format": "What word becomes shorter when you add two letters to it? Answer: Short"
+                    "system_prompt": "You are a wordsmith creating riddles that play with language, puns, and double meanings.",
+                    "example_format": "What has keys but no locks, space but no room, and you can enter but not go in? Answer: A keyboard"
                 }
-            }
-        },
-        "commentary_generation": {
-            "hooks": [
-                "Can you solve this riddle?",
-                "Test your knowledge!",
-                "Think you're smart enough?"
-            ],
-            "explanations": {
-                "style": "engaging",
-                "format": "concise"
             }
         }
     }
