@@ -16,14 +16,15 @@ def validate_category(category: str) -> bool:
     Raises:
         ValueError: If category is invalid
     """
-    valid_categories = [
+    config = Config()
+    valid_categories = config.get("openai.riddle_generation.categories", [
         "geography",
         "math",
         "physics",
         "history",
         "logic",
         "wordplay"
-    ]
+    ])
     
     if not category or category not in valid_categories:
         raise ValueError(
@@ -45,71 +46,14 @@ def validate_difficulty(difficulty: str) -> bool:
     Raises:
         ValueError: If difficulty is invalid
     """
-    valid_difficulties = ["easy", "medium", "hard"]
+    config = Config()
+    valid_difficulties = list(config.get("openai.riddle_generation.difficulty_levels", {}).keys())
     
     if not difficulty or difficulty not in valid_difficulties:
         raise ValueError(
             f"Invalid difficulty: {difficulty}. "
             f"Must be one of: {', '.join(valid_difficulties)}"
         )
-    
-    return True
-
-def validate_duration(duration: int) -> bool:
-    """Validate video duration
-    
-    Args:
-        duration: Duration in seconds
-        
-    Returns:
-        True if valid
-        
-    Raises:
-        ValueError: If duration is invalid
-    """
-    config = Config()
-    
-    min_duration = config.get("video.duration.min_segment", 3)
-    max_duration = config.get("video.duration.max_segment", 3)
-    
-    if not isinstance(duration, int):
-        raise ValueError("Duration must be an integer")
-    
-    if duration < min_duration or duration > max_duration:
-        raise ValueError(
-            f"Invalid duration: {duration}. "
-            f"Must be between {min_duration} and {max_duration} seconds"
-        )
-    
-    return True
-
-def validate_api_key(key_name: str, key_value: str) -> bool:
-    """Validate API key
-    
-    Args:
-        key_name: Name of the API key
-        key_value: Value of the API key
-        
-    Returns:
-        True if valid
-        
-    Raises:
-        ValueError: If API key is invalid
-    """
-    valid_key_names = [
-        "RIDDLER_PEXELS_API_KEY",
-        "RIDDLER_ELEVENLABS_API_KEY",
-        "RIDDLER_OPENAI_API_KEY"
-    ]
-    
-    if not key_name or key_name not in valid_key_names:
-        raise ValueError(
-            f"Invalid API key name: {key_name}. "
-            f"Must be one of: {', '.join(valid_key_names)}"
-        )
-    
-    if not key_value:
-        raise ValueError(f"API key not found: {key_name}")
     
     return True
 

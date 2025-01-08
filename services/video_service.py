@@ -9,7 +9,7 @@ from typing import Dict, List, Optional
 import hashlib
 
 from utils.cache import CacheManager
-from utils.helpers import get_api_key, get_cache_key
+from utils.helpers import get_api_key
 from utils.logger import log, StructuredLogger
 from utils.validators import validate_category
 from config.exceptions import VideoError
