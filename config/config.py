@@ -2,17 +2,10 @@
 
 import os
 import json
-from typing import Any, Dict, Optional
-from dataclasses import asdict
+from typing import Any
 from config.schema import (
     ConfigSchema,
-    OpenAIConfig,
-    OpenAIRiddleGeneration,
-    OpenAICommentaryGeneration,
-    OpenAIDifficultyLevel,
-    OpenAIRiddleTemplate
 )
-from config.exceptions import ConfigValidationError
 from utils.logger import log
 
 class Config:
@@ -34,6 +27,9 @@ class Config:
             if os.path.exists(self.config_path):
                 with open(self.config_path, "r") as f:
                     self.config = json.load(f)
+                    # Create schema instance and validate
+                    schema = ConfigSchema(**self.config)
+                    schema.validate(self.config)
             else:
                 self.config = ConfigSchema.get_default_config()
                 self.save_config()
