@@ -2,8 +2,6 @@
 
 import argparse
 import os
-import sys
-from typing import List, Dict
 from core.riddler import Riddler
 from config.exceptions import RiddlerException
 
