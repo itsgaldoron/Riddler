@@ -10,11 +10,3 @@ class AudioCompositionServiceBase(ABC):
         timings: Dict[str, float]
     ) -> CompositeAudioClip:
         pass
-
-    @abstractmethod
-    def mix_audio_tracks(
-        self,
-        tracks: List[CompositeAudioClip],
-        timings: Dict[str, float]
-    ) -> CompositeAudioClip:
-        pass 
