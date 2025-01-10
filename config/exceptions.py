@@ -84,3 +84,31 @@ class AssetError(RiddlerException):
 class VideoError(RiddlerException):
     """Exception raised for video service errors"""
     pass 
+
+class PexelsServiceError(Exception):
+    """Exception raised for errors in the Pexels service."""
+    pass
+
+class VideoCompositionError(Exception):
+    """Exception raised for errors in video composition."""
+    pass
+
+class AudioCompositionError(Exception):
+    """Exception raised for errors in audio composition."""
+    pass
+
+class TextOverlayError(Exception):
+    """Exception raised for errors in text overlay processing."""
+    pass
+
+class TimingServiceError(Exception):
+    """Exception raised for errors in timing calculations."""
+    pass
+
+class VideoEffectsError(Exception):
+    """Exception raised for errors in video effects processing."""
+    pass
+
+class SegmentServiceError(Exception):
+    """Exception raised for errors in segment processing."""
+    pass 

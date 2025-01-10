@@ -69,97 +69,13 @@ class StructuredLogger:
         self.logger.info(f"{message}{self._format_extra(extra)}")
 
     def debug(self, message: str, extra: Optional[Dict[str, Any]] = None) -> None:
-        self.logger.debug(f"{message}{self._format_extra(extra)}")
+        self.logger.info(f"{message}{self._format_extra(extra)}")
 
     def warning(self, message: str, extra: Optional[Dict[str, Any]] = None) -> None:
         self.logger.warning(f"{message}{self._format_extra(extra)}")
 
     def error(self, message: str, extra: Optional[Dict[str, Any]] = None) -> None:
         self.logger.error(f"{message}{self._format_extra(extra)}")
-
-    def exception(self, message: str, extra: Optional[Dict[str, Any]] = None) -> None:
-        self.logger.exception(f"{message}{self._format_extra(extra)}")
-        
-    def api_call(
-        self,
-        service: str,
-        endpoint: str,
-        params: Optional[Dict[str, Any]] = None
-    ) -> None:
-        """Log an API call.
-        
-        Args:
-            service: Service name (e.g., 'Pexels', 'ElevenLabs')
-            endpoint: API endpoint
-            params: Request parameters
-        """
-        self.info(
-            f"API call to {service} ({endpoint})",
-            extra={
-                "service": service,
-                "endpoint": endpoint,
-                "params": params
-            }
-        )
-        
-    def cache_operation(
-        self,
-        operation: str,
-        key: str,
-        success: bool
-    ) -> None:
-        """Log a cache operation.
-        
-        Args:
-            operation: Operation type ('get' or 'put')
-            key: Cache key
-            success: Whether the operation was successful
-        """
-        self.debug(
-            f"Cache {operation}: {'hit' if success else 'miss'}",
-            extra={
-                "operation": operation,
-                "key": key,
-                "success": success
-            }
-        )
-        
-    def video_processing(
-        self,
-        operation: str,
-        input_path: str,
-        output_path: str,
-        success: bool,
-        error: Optional[str] = None
-    ) -> None:
-        """Log a video processing operation.
-        
-        Args:
-            operation: Operation type (e.g., 'resize', 'merge')
-            input_path: Input video path
-            output_path: Output video path
-            success: Whether the operation was successful
-            error: Optional error message
-        """
-        if success:
-            self.info(
-                f"Video {operation} successful",
-                extra={
-                    "operation": operation,
-                    "input": input_path,
-                    "output": output_path
-                }
-            )
-        else:
-            self.error(
-                f"Video {operation} failed",
-                extra={
-                    "operation": operation,
-                    "input": input_path,
-                    "output": output_path,
-                    "error": error
-                }
-            )
 
 # Initialize logger with default configuration
 logger_config = LoggerConfig()

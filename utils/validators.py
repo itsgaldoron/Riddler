@@ -2,7 +2,7 @@
 
 import os
 from typing import List
-from config.config import Config
+from config.config import Configuration as Config
 
 def validate_category(category: str) -> bool:
     """Validate riddle category
@@ -34,50 +34,6 @@ def validate_category(category: str) -> bool:
     
     return True
 
-def validate_difficulty(difficulty: str) -> bool:
-    """Validate difficulty level
-    
-    Args:
-        difficulty: Difficulty level to validate
-        
-    Returns:
-        True if valid
-        
-    Raises:
-        ValueError: If difficulty is invalid
-    """
-    config = Config()
-    valid_difficulties = list(config.get("openai.riddle_generation.difficulty_levels", {}).keys())
-    
-    if not difficulty or difficulty not in valid_difficulties:
-        raise ValueError(
-            f"Invalid difficulty: {difficulty}. "
-            f"Must be one of: {', '.join(valid_difficulties)}"
-        )
-    
-    return True
-
-def validate_file_path(file_path: str) -> bool:
-    """Validate file path
-    
-    Args:
-        file_path: Path to validate
-        
-    Returns:
-        True if valid
-        
-    Raises:
-        ValueError: If path is invalid
-    """
-    if not file_path:
-        raise ValueError("File path cannot be empty")
-    
-    if not os.path.exists(file_path):
-        raise ValueError(f"File not found: {file_path}")
-    
-    return True
-
-def validate_cache_dir(cache_dir: str) -> bool:
     """Validate cache directory
     
     Args:

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Optional
 from concurrent.futures import ThreadPoolExecutor
 from utils.logger import log
-from config.config import Config
+from config.config import Configuration as Config
 
 class CacheManager:
     """Manages caching of data with compression and organization."""

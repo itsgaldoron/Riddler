@@ -4,7 +4,7 @@ import json
 import os
 import random
 import requests
-from typing import Optional
+from typing import Optional, Dict
 import hashlib
 
 from utils.cache import CacheManager
@@ -13,22 +13,24 @@ from utils.logger import log, StructuredLogger
 from utils.validators import validate_category
 from config.exceptions import VideoError
 
-class VideoService:
+class PexelsService:
     """Service for retrieving videos from Pexels"""
     
     def __init__(
         self,
-        min_duration: int = 3,
-        max_duration: int = 3,
-        min_width: int = 1080,
-        min_height: int = 1920,
-        orientation: str = "portrait",
-        cache_dir: str = "cache/video",
+        config: Dict,
+        min_duration: Optional[int] = None,
+        max_duration: Optional[int] = None,
+        min_width: Optional[int] = None,
+        min_height: Optional[int] = None,
+        orientation: Optional[str] = None,
+        cache_dir: Optional[str] = None,
         logger: Optional[StructuredLogger] = None
     ):
         """Initialize video service
         
         Args:
+            config: Configuration dictionary
             min_duration: Minimum video duration in seconds
             max_duration: Maximum video duration in seconds
             min_width: Minimum video width
@@ -38,13 +40,13 @@ class VideoService:
             logger: Logger instance
         """
         self.api_key = get_api_key("pexels")
-        self.min_duration = min_duration
-        self.max_duration = max_duration
-        self.min_width = min_width
-        self.min_height = min_height
-        self.orientation = orientation
+        self.min_duration = min_duration or config.get("video.pexels.min_duration", 3)
+        self.max_duration = max_duration or config.get("video.pexels.max_duration", 3)
+        self.min_width = min_width or config.get("video.pexels.min_width", 1080)
+        self.min_height = min_height or config.get("video.pexels.min_height", 1920)
+        self.orientation = orientation or config.get("video.pexels.orientation", "portrait")
         self.base_url = "https://api.pexels.com/videos"
-        self.cache = CacheManager(cache_dir)
+        self.cache = CacheManager(cache_dir or config.get("video.pexels.cache_dir", "cache/video"))
         self.logger = logger or log
         
         # Category to search term mapping
@@ -114,34 +116,46 @@ class VideoService:
                     # Check cache
                     cached_file = self.cache.get(cache_key)
                     if cached_file and os.path.exists(cached_file):
-                        self.logger.debug(f"Using cached video: {cached_file}")
+                        self.logger.info(f"Using cached video: {cached_file}")
                         return str(cached_file)
                     
                     # Search for videos
                     url = f"{self.base_url}/search"
-                    headers = {"Authorization": self.api_key}
+                    headers = {
+                        "Authorization": f"{self.api_key}"
+                    }
                     params = {
                         "query": term,
                         "orientation": self.orientation,
                         "size": "large",
-                        "per_page": 15
+                        "per_page": 15,
+                        "min_duration": self.min_duration,
+                        "max_duration": self.max_duration,
+                        "min_width": self.min_width,
+                        "min_height": self.min_height
                     }
                     
                     # Make request
+                    self.logger.info(f"Searching Pexels for term: {term}")
+                    self.logger.info(f"Request params: {params}")
+                    self.logger.info(f"Using API key: {self.api_key[:10]}...")
                     response = requests.get(url, headers=headers, params=params)
+                    
+                    if response.status_code != 200:
+                        self.logger.error(f"Pexels API error: {response.status_code} - {response.text}")
+                        continue
+                        
                     response.raise_for_status()
                     
                     # Parse response
                     data = response.json()
+                    self.logger.info(f"Found {len(data.get('videos', []))} videos")
                     if not data.get("videos"):
                         continue
                     
                     # Filter videos by requirements
                     suitable_videos = []
                     for video in data["videos"]:
-                        if not (self.min_duration <= video["duration"] <= self.max_duration):
-                            continue
-                        
                         # Find suitable video file
                         video_files = sorted(
                             video["video_files"],
@@ -150,12 +164,20 @@ class VideoService:
                         )
                         
                         for video_file in video_files:
-                            if (video_file.get("width", 0) >= self.min_width and
-                                video_file.get("height", 0) >= self.min_height):
+                            width = video_file.get("width", 0)
+                            height = video_file.get("height", 0)
+                            
+                            # Check if dimensions are acceptable
+                            if width >= 720 and height >= 1280:  # Reduced requirements
                                 suitable_videos.append((video, video_file))
+                                self.logger.info(
+                                    f"Found suitable video: {width}x{height}, "
+                                    f"duration: {video.get('duration')}s"
+                                )
                                 break
                     
                     if not suitable_videos:
+                        self.logger.info("No suitable videos found with current criteria")
                         continue
                     
                     # Select random video
@@ -187,7 +209,7 @@ class VideoService:
                     
                     # Add to cache
                     self.cache.put(cache_key, output_path)
-                    self.logger.debug(f"Cached video: {output_path}")
+                    self.logger.info(f"Cached video: {output_path}")
                     
                     return str(output_path)
                     
