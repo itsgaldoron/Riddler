@@ -16,24 +16,19 @@ class SegmentTimingService(SegmentTimingServiceBase):
         # Default timing configurations
         self.default_timings = {
             "hook": {
-                "min_duration": timing_config.get("hook", {}).get("min_duration", 5.0),
-                "padding": timing_config.get("hook", {}).get("padding", 1.0)
+                "end_padding": timing_config.get("hook", {}).get("end_padding", 0.5)
             },
             "question": {
-                "min_duration": timing_config.get("question", {}).get("min_duration", 3.0),
-                "padding": timing_config.get("question", {}).get("padding", 2.0)
+                "end_padding": timing_config.get("question", {}).get("end_padding", 1.0)
             },
             "thinking": {
-                "min_duration": timing_config.get("thinking", {}).get("duration", 6.0),
-                "padding": 0.5
+                "end_padding": timing_config.get("thinking", {}).get("end_padding", 0.25)
             },
             "answer": {
-                "min_duration": timing_config.get("answer", {}).get("min_duration", 4.0),
-                "padding": timing_config.get("answer", {}).get("padding", 1.5)
+                "end_padding": timing_config.get("answer", {}).get("end_padding", 1.5)
             },
             "transition": {
-                "min_duration": 2.0,
-                "padding": 0.5
+                "end_padding": 0.25
             }
         }
         
@@ -56,13 +51,18 @@ class SegmentTimingService(SegmentTimingServiceBase):
                 if not segment_id:
                     raise TimingServiceError("Segment missing ID")
                 
-                # Get base duration from voice clip if present
+                # Get base duration
                 base_duration = 0
-                voice_path = segment.get("voice_path")
-                if voice_path:
-                    from moviepy.editor import AudioFileClip
-                    with AudioFileClip(voice_path) as audio:
-                        base_duration = audio.duration
+                if segment_type == "thinking":
+                    # For thinking segments, base duration is 0 since there's no voiceover
+                    base_duration = 0
+                else:
+                    # For other segments, get duration from voice clip if present
+                    voice_path = segment.get("voice_path")
+                    if voice_path:
+                        from moviepy.editor import AudioFileClip
+                        with AudioFileClip(voice_path) as audio:
+                            base_duration = audio.duration
                 
                 # Get timing config for segment type
                 timing_config = self.default_timings.get(
@@ -70,21 +70,18 @@ class SegmentTimingService(SegmentTimingServiceBase):
                     self.default_timings["question"]  # Default to question timing
                 )
                 
-                # Calculate final duration
-                min_duration = timing_config["min_duration"]
-                padding = timing_config["padding"]
+                # Get end padding
+                end_padding = timing_config.get("end_padding", 0)
                 
-                final_duration = max(
-                    min_duration,
-                    base_duration + (2 * padding)  # Add padding to both sides
-                )
+                # Calculate final duration (base duration plus end padding)
+                final_duration = base_duration + end_padding
                 
                 timings.append({
                     "id": segment_id,
                     "type": segment_type,
                     "duration": final_duration,
                     "base_duration": base_duration,
-                    "padding": padding
+                    "end_padding": end_padding
                 })
             
             # Validate the timings

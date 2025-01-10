@@ -50,11 +50,10 @@ class AudioCompositionService(AudioCompositionServiceBase):
                     countdown_clip = countdown_clip.set_start(current_time)
                     countdown_clip = countdown_clip.volumex(self.sound_effects_volume)
                     audio_clips.append(countdown_clip)
-                
-                # Add reveal sound for answer segments
-                if segment_type == "answer":
+                    
+                    # Add reveal sound right after countdown ends
                     reveal_clip = AudioFileClip(self.reveal_sound)
-                    reveal_clip = reveal_clip.set_start(current_time)
+                    reveal_clip = reveal_clip.set_start(current_time + countdown_clip.duration)
                     reveal_clip = reveal_clip.volumex(self.sound_effects_volume)
                     audio_clips.append(reveal_clip)
                 

@@ -65,20 +65,10 @@ def main():
         
         # Get timing configuration
         config = app.config
-        riddle_duration = config.get("video.tiktok_optimization.target_duration", 27)  # seconds per riddle
-        min_duration = config.get("video.duration.min_total", 60)
-        max_duration = config.get("video.duration.max_total", 90)
-        
-        # Calculate optimal number of riddles
-        min_riddles = max(2, int(min_duration / riddle_duration))
-        max_riddles = min(4, int(max_duration / riddle_duration))
-        optimal_riddles = min(max(args.num_riddles, min_riddles), max_riddles)
-        
-        app.logger.info(f"Optimal number of riddles: {optimal_riddles}")
         
         # Generate riddles
         riddles = []
-        for i in range(optimal_riddles):
+        for i in range(args.num_riddles):
             try:
                 riddle_data = app.generate_riddle(
                     category=args.category,
@@ -133,9 +123,9 @@ def main():
             })
             
             # Add answer segment
-            answer_text = f"Answer: {riddle['answer']}"
-            if riddle.get("explanation"):
-                answer_text += f"\n\n{riddle['explanation']}"
+            answer_text = f"{riddle['answer']}"
+            # if riddle.get("explanation"):
+            #     answer_text += f"\n\n{riddle['explanation']}"
             answer_speech = app.generate_speech(answer_text)
             segments.append({
                 "id": f"answer_{i}",

@@ -96,21 +96,28 @@ class Configuration:
         "riddle": {
             "timing": {
                 "hook": {
-                    "min_duration": 5,
-                    "padding": 1
+                    "start_padding": 0.5,
+                    "end_padding": 0.5
                 },
                 "cta": {
-                    "min_duration": 4,
-                    "padding": 1
+                    "start_padding": 0.5,
+                    "end_padding": 0.5
                 },
                 "thinking": {
-                    "duration": 6
+                    "start_padding": 0.25,
+                    "end_padding": 0.25
                 },
                 "question": {
-                    "padding": 2
+                    "start_padding": 1.0,
+                    "end_padding": 1.0
                 },
                 "answer": {
-                    "padding": 3
+                    "start_padding": 1.5,
+                    "end_padding": 1.5
+                },
+                "transition": {
+                    "start_padding": 0.25,
+                    "end_padding": 0.25
                 }
             },
             "format": {
@@ -230,23 +237,15 @@ class Configuration:
         timing_config = self.config.get("riddle", {}).get("timing", {})
         
         for segment_type, timing in timing_config.items():
-            if "min_duration" in timing:
-                min_duration = timing["min_duration"]
-                if not isinstance(min_duration, (int, float)) or min_duration <= 0:
-                    raise ConfigValidationError(
-                        f"Invalid minimum duration for {segment_type}",
-                        f"riddle.timing.{segment_type}.min_duration",
-                        str(min_duration)
-                    )
-            
-            if "padding" in timing:
-                padding = timing["padding"]
-                if not isinstance(padding, (int, float)) or padding < 0:
-                    raise ConfigValidationError(
-                        f"Invalid padding for {segment_type}",
-                        f"riddle.timing.{segment_type}.padding",
-                        str(padding)
-                    )
+            for padding_type in ["start_padding", "end_padding"]:
+                if padding_type in timing:
+                    padding = timing[padding_type]
+                    if not isinstance(padding, (int, float)) or padding < 0:
+                        raise ConfigValidationError(
+                            f"Invalid {padding_type} for {segment_type}",
+                            f"riddle.timing.{segment_type}.{padding_type}",
+                            str(padding)
+                        )
 
     def _deep_merge(self, base: Dict, update: Dict) -> None:
         """Deep merge two dictionaries."""

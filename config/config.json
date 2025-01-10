@@ -9,7 +9,7 @@
         "language": "en-US"
     },
     "video": {
-        "min_duration": 30,
+        "min_duration": 60,
         "max_duration": 90,
         "min_width": 1080,
         "min_height": 1920,
@@ -28,7 +28,7 @@
             "fps": 30,
             "preferred_orientation": "portrait",
             "min_duration": 1,
-            "max_duration": 3
+            "max_duration": 6
         },
         "text": {
             "font_scale": 1.0,
@@ -86,21 +86,19 @@
     "riddle": {
         "timing": {
             "hook": {
-                "min_duration": 5,
-                "padding": 1
+                "end_padding": 0
             },
             "cta": {
-                "min_duration": 4,
-                "padding": 1
+                "end_padding": 0
             },
             "thinking": {
-                "duration": 6
+                "end_padding": 4
             },
             "question": {
-                "padding": 2
+                "end_padding": 0
             },
             "answer": {
-                "padding": 3
+                "end_padding": 1
             }
         },
         "format": {
