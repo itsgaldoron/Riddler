@@ -11,6 +11,11 @@ class AudioCompositionService(AudioCompositionServiceBase):
         self.logger = logger or logging.getLogger(__name__)
         self.background_music_volume = self.config.get("audio", {}).get("background_volume", 0.1)
         self.voice_volume = self.config.get("audio", {}).get("voice_volume", 1.0)
+        self.sound_effects_volume = self.config.get("audio", {}).get("sound_effects_volume", 0.7)
+        
+        # Sound effects paths
+        self.countdown_sound = "assets/audio/countdown.mp3"
+        self.reveal_sound = "assets/audio/reveal.mp3"
 
     def create_audio_composition(
         self,
@@ -24,6 +29,7 @@ class AudioCompositionService(AudioCompositionServiceBase):
             
             for segment in segments:
                 segment_id = segment.get("id")
+                segment_type = segment.get("type", "")
                 if not segment_id or segment_id not in timings:
                     continue
                 
@@ -37,6 +43,20 @@ class AudioCompositionService(AudioCompositionServiceBase):
                     voice_clip = voice_clip.set_start(current_time)
                     voice_clip = voice_clip.volumex(self.voice_volume)
                     audio_clips.append(voice_clip)
+                
+                # Add countdown sound for thinking segments
+                if segment_type == "thinking":
+                    countdown_clip = AudioFileClip(self.countdown_sound)
+                    countdown_clip = countdown_clip.set_start(current_time)
+                    countdown_clip = countdown_clip.volumex(self.sound_effects_volume)
+                    audio_clips.append(countdown_clip)
+                
+                # Add reveal sound for answer segments
+                if segment_type == "answer":
+                    reveal_clip = AudioFileClip(self.reveal_sound)
+                    reveal_clip = reveal_clip.set_start(current_time)
+                    reveal_clip = reveal_clip.volumex(self.sound_effects_volume)
+                    audio_clips.append(reveal_clip)
                 
                 # Handle background music if present
                 bg_music_path = segment.get("background_music")

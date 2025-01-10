@@ -60,7 +60,8 @@
             "sound_effects": {
                 "enabled": true,
                 "background_music_volume": 0.1,
-                "voice_volume": 1.0
+                "voice_volume": 1.0,
+                "sound_effects_volume": 0.7
             }
         },
         "cache_dir": "cache/video",
