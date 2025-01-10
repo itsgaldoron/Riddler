@@ -8,6 +8,7 @@ from services.video.effects_service import VideoEffectsService
 from services.video.text_overlay_service import TextOverlayService
 from services.audio.composition_service import AudioCompositionService
 from services.timing.segment_timing_service import SegmentTimingService
+from services.video.segment_service import SegmentService
 from utils.logger import log
 
 class VideoCompositionService(VideoCompositionServiceBase):
@@ -18,6 +19,7 @@ class VideoCompositionService(VideoCompositionServiceBase):
         video_effects: VideoEffectsService,
         audio_composition: AudioCompositionService,
         segment_timing: SegmentTimingService,
+        segment_service: SegmentService,
         config: Dict = None,
         logger: logging.Logger = None
     ):
@@ -26,6 +28,7 @@ class VideoCompositionService(VideoCompositionServiceBase):
         self.video_effects = video_effects
         self.audio_composition = audio_composition
         self.segment_timing = segment_timing
+        self.segment_service = segment_service
         self.config = config or {}
         self.logger = logger or log
 
@@ -42,51 +45,32 @@ class VideoCompositionService(VideoCompositionServiceBase):
                 self.config
             )
             
-            # Get background videos
-            background_videos = []
-            for segment in segment_timings:
-                try:
-                    video_path = self.pexels_service.get_video(category)
-                    clip = VideoFileClip(video_path)
-                    
-                    # Ensure clip duration is sufficient
-                    if clip.duration < segment["duration"]:
-                        # Loop the clip if needed
-                        n_loops = int(segment["duration"] / clip.duration) + 1
-                        clip = clip.loop(n=n_loops)
-                    
-                    # Process the video
-                    processed_video = self.video_effects.standardize_video(
-                        clip, 
-                        segment["duration"]
-                    )
-                    background_videos.append(processed_video)
-                except Exception as e:
-                    self.logger.error(f"Failed to process video for segment {segment['id']}: {str(e)}")
-                    raise VideoCompositionError(f"Failed to process video: {str(e)}")
-            
-            # log the background videos
-            self.logger.info(f"Background videos: {background_videos}")
-            
-            # Create video segments with overlays
+            # Process video segments
             video_segments = []
-            for bg_video, segment, timing in zip(
-                background_videos, 
-                riddle_segments, 
-                segment_timings
-            ):
+            
+            for segment, timing in zip(riddle_segments, segment_timings):
                 try:
+                    # Get background video
+                    video_path = self.pexels_service.get_video(category)
                     
-                    # Create text overlay
-                    text = segment.get("text", "")
-                    if text:
-                        bg_video = self.text_overlay.create_text_overlay(bg_video, text)
+                    # Create segment with video path and text
+                    processed_segment = {
+                        "video_path": video_path,
+                        "text": segment.get("text", "")
+                    }
                     
-                    video_segments.append(bg_video)
+                    # Process the segment using SegmentService
+                    processed_clip = self.segment_service.process_segment(
+                        processed_segment,
+                        {"duration": timing["duration"]}
+                    )
+                    
+                    video_segments.append(processed_clip)
+                    
                 except Exception as e:
-                    self.logger.error(f"Failed to create segment {segment['id']}: {str(e)}")
-                    raise VideoCompositionError(f"Failed to create segment: {str(e)}")
-                
+                    self.logger.error(f"Failed to process segment {segment.get('id', '')}: {str(e)}")
+                    raise VideoCompositionError(f"Failed to process segment: {str(e)}")
+            
             # Concatenate all segments
             try:
                 final_video = concatenate_videoclips(video_segments)
@@ -149,7 +133,7 @@ class VideoCompositionService(VideoCompositionServiceBase):
                 # Clean up
                 try:
                     final_video.close()
-                    for video in background_videos:
+                    for video in video_segments:
                         video.close()
                 except Exception as e:
                     self.logger.error(f"Error during cleanup: {str(e)}")
@@ -163,7 +147,7 @@ class VideoCompositionService(VideoCompositionServiceBase):
         finally:
             # Ensure all video files are closed
             try:
-                for video in background_videos:
+                for video in video_segments:
                     video.close()
             except Exception as e:
                 self.logger.error(f"Error during cleanup: {str(e)}") 

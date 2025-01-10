@@ -66,27 +66,3 @@ class AudioCompositionService(AudioCompositionServiceBase):
         except Exception as e:
             self.logger.error(f"Failed to create audio composition: {str(e)}")
             raise AudioCompositionError(f"Failed to create audio composition: {str(e)}")
-
-    def mix_audio_tracks(
-        self,
-        tracks: List[CompositeAudioClip],
-        timings: Dict[str, float]
-    ) -> CompositeAudioClip:
-        try:
-            if not tracks:
-                return CompositeAudioClip([])
-            
-            # Ensure all tracks have proper timing
-            current_time = 0
-            timed_tracks = []
-            
-            for track, timing in zip(tracks, timings.values()):
-                track = track.set_start(current_time)
-                timed_tracks.append(track)
-                current_time += timing
-            
-            return CompositeAudioClip(timed_tracks)
-            
-        except Exception as e:
-            self.logger.error(f"Failed to mix audio tracks: {str(e)}")
-            raise AudioCompositionError(f"Failed to mix audio tracks: {str(e)}") 

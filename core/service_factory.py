@@ -127,6 +127,7 @@ class ServiceFactory:
                 video_effects=self.get_video_effects_service(),
                 audio_composition=self.get_audio_composition_service(),
                 segment_timing=self.get_segment_timing_service(),
+                segment_service=self.get_segment_service(),
                 config=self.config,
                 logger=self.logger
             )
