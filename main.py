@@ -4,6 +4,7 @@ import argparse
 import os
 from core.application import Application
 from config.exceptions import RiddlerException
+import random
 
 def parse_args():
     """Parse command line arguments
@@ -94,7 +95,8 @@ def main():
         for i, riddle in enumerate(riddles):
             # Add hook segment for first riddle
             if i == 0:
-                hook_text = "Can You Solve These Mind-Bending Riddles?"
+                hook_patterns = config.get("riddle.format.hook_patterns", [])
+                hook_text = random.choice(hook_patterns)
                 hook_speech = app.generate_speech(hook_text)
                 segments.append({
                     "id": "hook",
@@ -115,10 +117,12 @@ def main():
             })
             
             # Add thinking time segment
+            thinking_patterns = config.get("riddle.format.thinking_patterns", [])
+            thinking_text = random.choice(thinking_patterns)
             segments.append({
                 "id": f"thinking_{i}",
                 "type": "thinking",
-                "text": "Time to think...",
+                "text": thinking_text,
                 "index": len(segments)
             })
             
@@ -137,7 +141,8 @@ def main():
             
             # Add transition for all but last riddle
             if i < len(riddles) - 1:
-                transition_text = "Next Riddle..."
+                next_riddle_patterns = config.get("riddle.format.next_riddle_patterns", [])
+                transition_text = random.choice(next_riddle_patterns)
                 transition_speech = app.generate_speech(transition_text)
                 segments.append({
                     "id": f"transition_{i}",
@@ -146,6 +151,18 @@ def main():
                     "voice_path": transition_speech,
                     "index": len(segments)
                 })
+        
+        # Add CTA at the end of the video
+        cta_patterns = config.get("riddle.format.call_to_action_patterns", [])
+        cta_text = random.choice(cta_patterns)
+        cta_speech = app.generate_speech(cta_text)
+        segments.append({
+            "id": "cta",
+            "type": "cta",
+            "text": cta_text,
+            "voice_path": cta_speech,
+            "index": len(segments)
+        })
         
         # Create multi-riddle video
         output_path = os.path.join(args.output, f"riddle_{args.category}_{os.urandom(4).hex()}.mp4")

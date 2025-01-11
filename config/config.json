@@ -107,15 +107,21 @@
                 "Test Your Brain with These Riddles!",
                 "Only Geniuses Can Solve These Riddles!"
             ],
-            "challenge_patterns": [
-                "Time to test your brain!",
-                "Think you're smart enough?",
-                "Bet you can't solve this!"
+            "thinking_patterns": [
+                "Time to think...",
+                "Let's see if you can solve this one!",
+                "Ready to solve this riddle?"
             ],
-            "reveal_patterns": [
-                "The answer is...",
-                "Did you get it right?",
-                "Here's the solution!"
+            "next_riddle_patterns": [
+                "Next Riddle...",
+                "Ready for the next one?",
+                "Let's move on to the next one!"
+            ],
+            "call_to_action_patterns": [
+                "Like and follow for more brain teasers!",
+                "Follow us for daily riddles!",
+                "Want more riddles? Hit that follow button!",
+                "Did you solve it? Let us know in the comments!"
             ]
         }
     },
