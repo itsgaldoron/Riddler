@@ -51,6 +51,12 @@ def parse_args():
         help="Path to configuration file"
     )
     
+    parser.add_argument(
+        "--no-riddle-cache",
+        action="store_true",
+        help="Disable riddle caching"
+    )
+    
     return parser.parse_args()
 
 def main():
@@ -73,7 +79,8 @@ def main():
             try:
                 riddle_data = app.generate_riddle(
                     category=args.category,
-                    difficulty=args.difficulty
+                    difficulty=args.difficulty,
+                    no_cache=args.no_riddle_cache
                 )
                 # Add segment metadata
                 riddle_data.update({

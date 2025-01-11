@@ -28,7 +28,8 @@ class Application:
         difficulty: str = "medium",
         style: str = "classic",
         target_age: str = "teen",
-        educational: bool = True
+        educational: bool = True,
+        no_cache: bool = False
     ) -> Dict[str, str]:
         """Generate a riddle using OpenAI."""
         try:
@@ -38,7 +39,8 @@ class Application:
                 difficulty=difficulty,
                 style=style,
                 target_age=target_age,
-                educational=educational
+                educational=educational,
+                no_cache=no_cache
             )
         except Exception as e:
             self.logger.error(f"Failed to generate riddle: {str(e)}")

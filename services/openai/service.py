@@ -9,6 +9,11 @@ from config.exceptions import OpenAIError
 from services.openai.base import OpenAIServiceBase
 from utils.cache import CacheManager
 from utils.logger import log
+from pydantic import BaseModel
+
+class RiddleResponse(BaseModel):
+    riddle: str
+    answer: str
 
 class OpenAIService(OpenAIServiceBase):
     """OpenAI service implementation."""
@@ -58,7 +63,8 @@ class OpenAIService(OpenAIServiceBase):
         style: str = "classic",
         target_age: str = "teen",
         educational: bool = True,
-        cache_key: Optional[str] = None
+        cache_key: Optional[str] = None,
+        no_cache: bool = False
     ) -> Dict[str, str]:
         """Generate a riddle using OpenAI.
         
@@ -69,6 +75,7 @@ class OpenAIService(OpenAIServiceBase):
             target_age: Target age group
             educational: Whether to include educational content
             cache_key: Optional cache key
+            no_cache: Whether to skip cache checking
             
         Returns:
             Dictionary containing riddle and answer
@@ -81,25 +88,28 @@ class OpenAIService(OpenAIServiceBase):
             self._validate_category(category)
             self._validate_difficulty(difficulty)
             
-            # Generate cache key if not provided
-            if not cache_key:
-                params = {
-                    "category": category,
-                    "difficulty": difficulty,
-                    "style": style,
-                    "target_age": target_age,
-                    "educational": educational
-                }
-                cache_key = hashlib.sha256(
-                    json.dumps(params, sort_keys=True).encode()
-                ).hexdigest()
-            
-            self.logger.info(f"Cache key: {cache_key}")
-            # Check cache
-            cached_data = self.cache.get(cache_key)
-            if cached_data and isinstance(cached_data, dict):
-                self.logger.info("Using cached riddle")
-                return cached_data
+            # Generate cache key if not provided and caching is enabled
+            if not no_cache:
+                if not cache_key:
+                    params = {
+                        "category": category,
+                        "difficulty": difficulty,
+                        "style": style,
+                        "target_age": target_age,
+                        "educational": educational
+                    }
+                    cache_key = hashlib.sha256(
+                        json.dumps(params, sort_keys=True).encode()
+                    ).hexdigest()
+                
+                self.logger.info(f"Cache key: {cache_key}")
+                # Check cache
+                cached_data = self.cache.get(cache_key)
+                if cached_data and isinstance(cached_data, dict):
+                    self.logger.info("Using cached riddle")
+                    return cached_data
+            else:
+                self.logger.info("Cache disabled, generating new riddle")
             
             # Prepare prompt
             prompt = self._prepare_riddle_prompt(
@@ -160,7 +170,7 @@ class OpenAIService(OpenAIServiceBase):
             OpenAIError: If generation fails
         """
         try:
-            response = self.client.chat.completions.create(
+            completion = self.client.beta.chat.completions.parse(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": prompt},
@@ -168,30 +178,14 @@ class OpenAIService(OpenAIServiceBase):
                 ],
                 temperature=temperature or self.temperature,
                 max_tokens=self.max_tokens,
-                response_format={
-                    "type": "json_schema",
-                    "json_schema": {
-                        "type": "object",
-                        "properties": {
-                            "riddle": {
-                                "type": "string",
-                                "description": "The riddle text"
-                            },
-                            "answer": {
-                                "type": "string",
-                                "description": "The answer to the riddle"
-                            },
-                            "explanation": {
-                                "type": "string",
-                                "description": "Educational explanation of the riddle and its answer"
-                            }
-                        },
-                        "required": ["riddle", "answer", "explanation"]
-                    }
-                }
+                response_format=RiddleResponse
             )
             
-            return json.loads(response.choices[0].message.content)
+            return {
+                "riddle": completion.choices[0].message.parsed.riddle,
+                "answer": completion.choices[0].message.parsed.answer,
+                "explanation": completion.choices[0].message.parsed.explanation
+            }
             
         except Exception as e:
             raise OpenAIError(f"Failed to generate completion: {str(e)}")
