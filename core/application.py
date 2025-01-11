@@ -25,17 +25,19 @@ class Application:
     def generate_riddle(
         self,
         category: str,
+        num_riddles: int = 1,
         difficulty: str = "medium",
         style: str = "classic",
         target_age: str = "teen",
         educational: bool = True,
         no_cache: bool = False
-    ) -> Dict[str, str]:
-        """Generate a riddle using OpenAI."""
+    ) -> List[Dict[str, str]]:
+        """Generate multiple riddles using OpenAI."""
         try:
             openai_service = self.service_factory.get_openai_service()
             return openai_service.generate_riddle(
                 category=category,
+                num_riddles=num_riddles,
                 difficulty=difficulty,
                 style=style,
                 target_age=target_age,
@@ -43,8 +45,8 @@ class Application:
                 no_cache=no_cache
             )
         except Exception as e:
-            self.logger.error(f"Failed to generate riddle: {str(e)}")
-            raise RiddlerException(f"Failed to generate riddle: {str(e)}")
+            self.logger.error(f"Failed to generate riddles: {str(e)}")
+            raise RiddlerException(f"Failed to generate riddles: {str(e)}")
 
     def generate_speech(
         self,

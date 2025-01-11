@@ -74,24 +74,23 @@ def main():
         config = app.config
         
         # Generate riddles
-        riddles = []
-        for i in range(args.num_riddles):
-            try:
-                riddle_data = app.generate_riddle(
-                    category=args.category,
-                    difficulty=args.difficulty,
-                    no_cache=args.no_riddle_cache
-                )
-                # Add segment metadata
+        try:
+            riddles = app.generate_riddle(
+                category=args.category,
+                num_riddles=args.num_riddles,
+                difficulty=args.difficulty,
+                no_cache=args.no_riddle_cache
+            )
+            # Add segment metadata to each riddle
+            for i, riddle_data in enumerate(riddles):
                 riddle_data.update({
                     "id": f"riddle_{i}",
                     "type": "riddle",
                     "index": i
                 })
-                riddles.append(riddle_data)
-            except Exception as e:
-                print(f"Error generating riddle: {str(e)}")
-                continue
+        except Exception as e:
+            print(f"Error generating riddles: {str(e)}")
+            raise RiddlerException("Failed to generate riddles")
         
         if not riddles:
             raise RiddlerException("Failed to generate any riddles")

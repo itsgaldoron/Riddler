@@ -3,17 +3,20 @@
 import os
 import json
 import hashlib
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 from openai import OpenAI
 from config.exceptions import OpenAIError
 from services.openai.base import OpenAIServiceBase
 from utils.cache import CacheManager
 from utils.logger import log
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+class RiddleItem(BaseModel):
+    riddle: str = Field(description="The riddle text")
+    answer: str = Field(description="The answer to the riddle")
 
 class RiddleResponse(BaseModel):
-    riddle: str
-    answer: str
+    riddles: List[RiddleItem] = Field(description="List of riddles and their answers")
 
 class OpenAIService(OpenAIServiceBase):
     """OpenAI service implementation."""
@@ -59,17 +62,19 @@ class OpenAIService(OpenAIServiceBase):
     def generate_riddle(
         self,
         category: str,
+        num_riddles: int = 1,
         difficulty: str = "medium",
         style: str = "classic",
         target_age: str = "teen",
         educational: bool = True,
         cache_key: Optional[str] = None,
         no_cache: bool = False
-    ) -> Dict[str, str]:
-        """Generate a riddle using OpenAI.
+    ) -> List[Dict[str, str]]:
+        """Generate multiple unique riddles using OpenAI.
         
         Args:
             category: Riddle category
+            num_riddles: Number of unique riddles to generate
             difficulty: Difficulty level
             style: Riddle style
             target_age: Target age group
@@ -78,7 +83,7 @@ class OpenAIService(OpenAIServiceBase):
             no_cache: Whether to skip cache checking
             
         Returns:
-            Dictionary containing riddle and answer
+            List of dictionaries containing riddles and answers
             
         Raises:
             OpenAIError: If generation fails
@@ -93,6 +98,7 @@ class OpenAIService(OpenAIServiceBase):
                 if not cache_key:
                     params = {
                         "category": category,
+                        "num_riddles": num_riddles,
                         "difficulty": difficulty,
                         "style": style,
                         "target_age": target_age,
@@ -105,22 +111,23 @@ class OpenAIService(OpenAIServiceBase):
                 self.logger.info(f"Cache key: {cache_key}")
                 # Check cache
                 cached_data = self.cache.get(cache_key)
-                if cached_data and isinstance(cached_data, dict):
-                    self.logger.info("Using cached riddle")
+                if cached_data and isinstance(cached_data, list):
+                    self.logger.info("Using cached riddles")
                     return cached_data
             else:
-                self.logger.info("Cache disabled, generating new riddle")
+                self.logger.info("Cache disabled, generating new riddles")
             
             # Prepare prompt
             prompt = self._prepare_riddle_prompt(
                 category,
+                num_riddles,
                 difficulty,
                 style,
                 target_age,
                 educational
             )
             
-            # Generate riddle
+            # Generate riddles
             for attempt in range(self.max_attempts):
                 try:
                     response = self._generate_completion(
@@ -130,22 +137,23 @@ class OpenAIService(OpenAIServiceBase):
                     
                     # Parse and validate response
                     riddle_data = self._parse_riddle_response(response)
-                    if self._validate_riddle(riddle_data):
+                    if all(self._validate_riddle(r) for r in riddle_data):
                         break
                         
                 except Exception as e:
                     if attempt == self.max_attempts - 1:
-                        raise OpenAIError(f"Failed to generate valid riddle: {str(e)}")
+                        raise OpenAIError(f"Failed to generate valid riddles: {str(e)}")
                     self.logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
                     continue
             
-            # Add metadata
-            riddle_data.update({
-                "category": category,
-                "difficulty": difficulty,
-                "style": style,
-                "target_age": target_age
-            })
+            # Add metadata to each riddle
+            for riddle in riddle_data:
+                riddle.update({
+                    "category": category,
+                    "difficulty": difficulty,
+                    "style": style,
+                    "target_age": target_age
+                })
             
             # Cache result
             self.cache.put(cache_key, riddle_data)
@@ -153,8 +161,8 @@ class OpenAIService(OpenAIServiceBase):
             return riddle_data
             
         except Exception as e:
-            self.logger.error(f"Failed to generate riddle: {str(e)}")
-            raise OpenAIError(f"Failed to generate riddle: {str(e)}")
+            self.logger.error(f"Failed to generate riddles: {str(e)}")
+            raise OpenAIError(f"Failed to generate riddles: {str(e)}")
 
     def _generate_completion(self, prompt: str, temperature: Optional[float] = None) -> Dict[str, Any]:
         """Generate a completion using the OpenAI API.
@@ -174,22 +182,22 @@ class OpenAIService(OpenAIServiceBase):
                 model=self.model,
                 messages=[
                     {"role": "system", "content": prompt},
-                    {"role": "user", "content": "Generate a riddle based on the given category and requirements."}
+                    {"role": "user", "content": "Generate unique riddles based on the given category and requirements."}
                 ],
                 temperature=temperature or self.temperature,
                 max_tokens=self.max_tokens,
                 response_format=RiddleResponse
             )
             
-            return {
-                "riddle": completion.choices[0].message.parsed.riddle,
-                "answer": completion.choices[0].message.parsed.answer,
-            }
+            return [
+                {"riddle": item.riddle, "answer": item.answer}
+                for item in completion.choices[0].message.parsed.riddles
+            ]
             
         except Exception as e:
             raise OpenAIError(f"Failed to generate completion: {str(e)}")
 
-    def _parse_riddle_response(self, data: Dict[str, Any]) -> Dict[str, str]:
+    def _parse_riddle_response(self, data: List[Dict[str, Any]]) -> List[Dict[str, str]]:
         """Parse and validate the riddle response.
         
         Args:
@@ -202,22 +210,29 @@ class OpenAIService(OpenAIServiceBase):
             OpenAIError: If validation fails
         """
         try:
-            if not isinstance(data, dict):
-                raise OpenAIError("Response is not a dictionary")
+            if not isinstance(data, list):
+                raise OpenAIError("Response is not a list")
                 
-            required_fields = ["riddle", "answer"]
-            for field in required_fields:
-                if field not in data:
-                    raise OpenAIError(f"Missing required field '{field}'")
-                if not isinstance(data[field], str):
-                    raise OpenAIError(f"Field '{field}' must be a string")
-                if not data[field].strip():
-                    raise OpenAIError(f"Field '{field}' cannot be empty")
+            parsed_riddles = []
+            for riddle_data in data:
+                if not isinstance(riddle_data, dict):
+                    raise OpenAIError("Riddle data is not a dictionary")
+                    
+                required_fields = ["riddle", "answer"]
+                for field in required_fields:
+                    if field not in riddle_data:
+                        raise OpenAIError(f"Missing required field '{field}'")
+                    if not isinstance(riddle_data[field], str):
+                        raise OpenAIError(f"Field '{field}' must be a string")
+                    if not riddle_data[field].strip():
+                        raise OpenAIError(f"Field '{field}' cannot be empty")
+                
+                parsed_riddles.append({
+                    "riddle": riddle_data["riddle"].strip(),
+                    "answer": riddle_data["answer"].strip(),
+                })
             
-            return {
-                "riddle": data["riddle"].strip(),
-                "answer": data["answer"].strip(),
-            }
+            return parsed_riddles
             
         except Exception as e:
             raise OpenAIError(f"Invalid riddle data format: {str(e)}")
@@ -311,6 +326,7 @@ class OpenAIService(OpenAIServiceBase):
     def _prepare_riddle_prompt(
         self,
         category: str,
+        num_riddles: int,
         difficulty: str,
         style: str,
         target_age: str,
@@ -320,6 +336,7 @@ class OpenAIService(OpenAIServiceBase):
         
         Args:
             category: Riddle category
+            num_riddles: Number of unique riddles to generate
             difficulty: Difficulty level
             style: Riddle style
             target_age: Target age group
@@ -337,11 +354,12 @@ class OpenAIService(OpenAIServiceBase):
         difficulty_config = self.difficulty_levels.get(difficulty, {})
         educational_level = difficulty_config.get("educational_level", "general")
         
-        return f"""Create a {difficulty} difficulty riddle about {category}.
-Style: {style}`
+        return f"""Create {num_riddles} unique {difficulty} difficulty riddles about {category}.
+Each riddle must be different from the others.
+Style: {style}
 Target Age: {target_age}
 Educational Level: {educational_level}
-Make it {"educational and " if educational else ""}engaging.
+Make them {"educational and " if educational else ""}engaging.
 
 {system_prompt}
 
