@@ -28,7 +28,37 @@
             "fps": 30,
             "preferred_orientation": "portrait",
             "min_duration": 1,
-            "max_duration": 6
+            "max_duration": 6,
+            "category_terms": {
+                "geography": [
+                    "landscape", "mountains", "ocean",
+                    "desert", "forest", "waterfall"
+                ],
+                "math": [
+                    "numbers", "geometry", "patterns",
+                    "symmetry", "fractals", "shapes"
+                ],
+                "physics": [
+                    "motion", "energy", "light",
+                    "space", "gravity", "waves"
+                ],
+                "history": [
+                    "ancient", "ruins", "architecture",
+                    "monuments", "artifacts", "time"
+                ],
+                "logic": [
+                    "puzzle", "maze", "chess",
+                    "strategy", "problem solving", "thinking"
+                ],
+                "wordplay": [
+                    "letters", "books", "writing",
+                    "library", "words", "communication"
+                ],
+                "biker_mechanic": [
+                    "bikes", "mechanics",
+                    "gears", "chains", "wheels"
+                ]
+            }
         },
         "text": {
             "font_scale": 1.0,
@@ -199,14 +229,6 @@
         "max_attempts": 3,
         "cache_dir": "cache/riddles",
         "riddle_generation": {
-            "categories": [
-                "geography",
-                "math",
-                "physics",
-                "history",
-                "logic",
-                "wordplay"
-            ],
             "difficulty_levels": {
                 "easy": {
                     "complexity": 0.3,
@@ -222,6 +244,10 @@
                 }
             },
             "templates": {
+                "biker_mechanic": {
+                    "system_prompt": "You are a biker mechanic creating riddles about advanced bike mechanics. Focus on components like derailleurs, bottom brackets, hub internals, suspension systems, and hydraulic brakes. Use authentic mechanic terminology and real mechanical principles in your riddles.",
+                    "example_format": "I spin freely one way but lock the other, inside my shell are pawls and springs. What am I? Answer: A freehub mechanism"
+                },
                 "geography": {
                     "system_prompt": "You are a geography expert creating engaging riddles about countries, landmarks, and geographical features.",
                     "example_format": "I have cities but no houses, rivers but no water, forests but no trees. What am I? Answer: A map"

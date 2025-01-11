@@ -135,8 +135,6 @@ def main():
             
             # Add answer segment
             answer_text = f"{riddle['answer']}"
-            # if riddle.get("explanation"):
-            #     answer_text += f"\n\n{riddle['explanation']}"
             answer_speech = app.generate_speech(answer_text)
             segments.append({
                 "id": f"answer_{i}",

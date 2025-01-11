@@ -184,7 +184,6 @@ class OpenAIService(OpenAIServiceBase):
             return {
                 "riddle": completion.choices[0].message.parsed.riddle,
                 "answer": completion.choices[0].message.parsed.answer,
-                "explanation": completion.choices[0].message.parsed.explanation
             }
             
         except Exception as e:
@@ -206,7 +205,7 @@ class OpenAIService(OpenAIServiceBase):
             if not isinstance(data, dict):
                 raise OpenAIError("Response is not a dictionary")
                 
-            required_fields = ["riddle", "answer", "explanation"]
+            required_fields = ["riddle", "answer"]
             for field in required_fields:
                 if field not in data:
                     raise OpenAIError(f"Missing required field '{field}'")
@@ -218,7 +217,6 @@ class OpenAIService(OpenAIServiceBase):
             return {
                 "riddle": data["riddle"].strip(),
                 "answer": data["answer"].strip(),
-                "explanation": data["explanation"].strip()
             }
             
         except Exception as e:
@@ -234,7 +232,7 @@ class OpenAIService(OpenAIServiceBase):
             Whether the riddle is valid
         """
         try:
-            required_fields = ["riddle", "answer", "explanation"]
+            required_fields = ["riddle", "answer"]
             
             # Check required fields
             for field in required_fields:
@@ -255,9 +253,7 @@ class OpenAIService(OpenAIServiceBase):
             if len(riddle_data["answer"]) < 1:
                 self.logger.info("Answer text too short")
                 return False
-            if len(riddle_data["explanation"]) < 10:
-                self.logger.info("Explanation text too short")
-                return False
+
             
             # Check for inappropriate content
             if self._contains_inappropriate_content(riddle_data):
@@ -291,14 +287,11 @@ class OpenAIService(OpenAIServiceBase):
         Raises:
             ValueError: If category is invalid
         """
-        valid_categories = [
-            "geography",
-            "math",
-            "physics",
-            "history",
-            "logic",
-            "wordplay"
-        ]
+        video_config = self.config.get("video", {})
+        pexels_config = video_config.get("pexels", {})
+        category_terms = pexels_config.get("category_terms", {})
+        valid_categories = list(category_terms.keys())
+        self.logger.info(f"Valid categories: {valid_categories}")
         if category not in valid_categories:
             raise ValueError(f"Invalid category: {category}. Must be one of {valid_categories}")
 
@@ -342,11 +335,10 @@ class OpenAIService(OpenAIServiceBase):
         
         # Get difficulty configuration
         difficulty_config = self.difficulty_levels.get(difficulty, {})
-        complexity = difficulty_config.get("complexity", 0.5)
         educational_level = difficulty_config.get("educational_level", "general")
         
         return f"""Create a {difficulty} difficulty riddle about {category}.
-Style: {style}
+Style: {style}`
 Target Age: {target_age}
 Educational Level: {educational_level}
 Make it {"educational and " if educational else ""}engaging.

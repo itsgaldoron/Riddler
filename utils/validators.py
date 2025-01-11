@@ -17,14 +17,10 @@ def validate_category(category: str) -> bool:
         ValueError: If category is invalid
     """
     config = Config()
-    valid_categories = config.get("openai.riddle_generation.categories", [
-        "geography",
-        "math",
-        "physics",
-        "history",
-        "logic",
-        "wordplay"
-    ])
+    video_config = config.get("video", {})
+    pexels_config = video_config.get("pexels", {})
+    category_terms = pexels_config.get("category_terms", {})
+    valid_categories = list(category_terms.keys())
     
     if not category or category not in valid_categories:
         raise ValueError(

@@ -40,42 +40,19 @@ class PexelsService:
             logger: Logger instance
         """
         self.api_key = get_api_key("pexels")
-        self.min_duration = min_duration or config.get("video.pexels.min_duration", 3)
-        self.max_duration = max_duration or config.get("video.pexels.max_duration", 3)
-        self.min_width = min_width or config.get("video.pexels.min_width", 1080)
-        self.min_height = min_height or config.get("video.pexels.min_height", 1920)
-        self.orientation = orientation or config.get("video.pexels.orientation", "portrait")
+        self.min_duration = min_duration or config.get("video", {}).get("pexels", {}).get("min_duration", 3)
+        self.max_duration = max_duration or config.get("video", {}).get("pexels", {}).get("max_duration", 3)
+        self.min_width = min_width or config.get("video", {}).get("pexels", {}).get("min_width", 1080)
+        self.min_height = min_height or config.get("video", {}).get("pexels", {}).get("min_height", 1920)
+        self.orientation = orientation or config.get("video", {}).get("pexels", {}).get("orientation", "portrait")
         self.base_url = "https://api.pexels.com/videos"
-        self.cache = CacheManager(cache_dir or config.get("video.pexels.cache_dir", "cache/video"))
+        self.cache = CacheManager(cache_dir or config.get("video", {}).get("pexels", {}).get("cache_dir", "cache/video"))
         self.logger = logger or log
         
-        # Category to search term mapping
-        self.category_terms = {
-            "geography": [
-                "landscape", "mountains", "ocean",
-                "desert", "forest", "waterfall"
-            ],
-            "math": [
-                "numbers", "geometry", "patterns",
-                "symmetry", "fractals", "shapes"
-            ],
-            "physics": [
-                "motion", "energy", "light",
-                "space", "gravity", "waves"
-            ],
-            "history": [
-                "ancient", "ruins", "architecture",
-                "monuments", "artifacts", "time"
-            ],
-            "logic": [
-                "puzzle", "maze", "chess",
-                "strategy", "problem solving", "thinking"
-            ],
-            "wordplay": [
-                "letters", "books", "writing",
-                "library", "words", "communication"
-            ]
-        }
+        # Get category terms from config - fix nested access
+        pexels_config = config.get("video", {}).get("pexels", {})
+        self.category_terms = pexels_config.get("category_terms", {})
+        self.logger.info(f"Loaded category terms: {list(self.category_terms.keys())}")
     
     def get_video(self, category: str) -> str:
         """Get a video for the given category
