@@ -39,3 +39,10 @@ riddler_venv/
 pexels_cache/
 voice_cache/
 test_output/
+
+venv/
+
+logs/
+metrics/
+cache/
+temp-audio.m4a.log

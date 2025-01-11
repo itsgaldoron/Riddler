@@ -1,0 +1,278 @@
+{
+    "tts": {
+        "provider": "elevenlabs",
+        "voice_id": "pqHfZKP75CvOlQylNhV4",
+        "model": "eleven_monolingual_v1",
+        "stability": 0.5,
+        "similarity_boost": 0.75,
+        "cache_dir": "cache/voice",
+        "language": "en-US"
+    },
+    "video": {
+        "min_duration": 60,
+        "max_duration": 90,
+        "min_width": 1080,
+        "min_height": 1920,
+        "orientation": "portrait",
+        "resolution": {
+            "width": 1080,
+            "height": 1920
+        },
+        "fps": 30,
+        "pexels": {
+            "categories": ["landscape", "mountains", "ocean"],
+            "resolution": {
+                "width": 1080,
+                "height": 1920
+            },
+            "fps": 30,
+            "preferred_orientation": "portrait",
+            "min_duration": 1,
+            "max_duration": 6,
+            "category_terms": {
+                "geography": [
+                    "landscape", "mountains", "ocean",
+                    "desert", "forest", "waterfall"
+                ],
+                "math": [
+                    "numbers", "geometry", "patterns",
+                    "symmetry", "fractals", "shapes"
+                ],
+                "physics": [
+                    "motion", "energy", "light",
+                    "space", "gravity", "waves"
+                ],
+                "history": [
+                    "ancient", "ruins", "architecture",
+                    "monuments", "artifacts", "time"
+                ],
+                "logic": [
+                    "puzzle", "maze", "chess",
+                    "strategy", "problem solving", "thinking"
+                ],
+                "wordplay": [
+                    "letters", "books", "writing",
+                    "library", "words", "communication"
+                ],
+                "biker_mechanic": [
+                    "bikes", "mechanics",
+                    "gears", "chains", "wheels"
+                ]
+            }
+        },
+        "text": {
+            "font_scale": 1.0,
+            "font_thickness": 2,
+            "font_color": [255, 255, 255],
+            "background_color": [0, 0, 0],
+            "font_size": 36,
+            "font_family": "Arial",
+            "background_opacity": 0.5,
+            "position": "smart"
+        },
+        "effects": {
+            "zoom": {
+                "enabled": true,
+                "max_scale": 1.2
+            }
+        },
+        "duration": {
+            "min_total": 60,
+            "max_total": 90,
+            "target_total": 75,
+            "min_segment": 3,
+            "max_segment": 3
+        },
+        "tiktok_optimization": {
+            "target_duration": 27,
+            "hook_duration": 3,
+            "end_screen_duration": 2,
+            "sound_effects": {
+                "enabled": true,
+                "background_music_volume": 0.1,
+                "voice_volume": 1.0,
+                "sound_effects_volume": 0.7
+            }
+        },
+        "cache_dir": "cache/video",
+        "max_cache_size_gb": 5
+    },
+    "presentation": {
+        "text_overlay": {
+            "font_size": 48,
+            "font_family": "Arial",
+            "color": "#FFFFFF",
+            "background_opacity": 0.6,
+            "padding": 20,
+            "position": "smart"
+        }
+    },
+    "cache": {
+        "voice_dir": "cache/voice",
+        "video_dir": "cache/video",
+        "max_cache_size": 1000000000,
+        "cleanup_threshold": 0.9
+    },
+    "riddle": {
+        "timing": {
+            "hook": {
+                "end_padding": 0
+            },
+            "cta": {
+                "end_padding": 0
+            },
+            "thinking": {
+                "end_padding": 4
+            },
+            "question": {
+                "end_padding": 0
+            },
+            "answer": {
+                "end_padding": 1
+            }
+        },
+        "format": {
+            "hook_patterns": [
+                "Can You Solve These Mind-Bending Riddles?",
+                "Test Your Brain with These Riddles!",
+                "Only Geniuses Can Solve These Riddles!",
+                "Think You're Smart? Try These Riddles!",
+                "Challenge Your Mind with These Riddles!",
+                "99% of People Can't Solve These Riddles!",
+                "Are You Clever Enough for These Riddles?", 
+                "Time to Exercise Your Brain!",
+                "These Riddles Will Blow Your Mind!",
+                "Ready for a Mental Challenge?",
+                "Let's See How Smart You Really Are!",
+                "Warning: These Riddles Are Addictive!",
+                "Your Brain Will Thank You for These Riddles!",
+                "Prepare to Have Your Mind Twisted!",
+                "The Ultimate Riddle Challenge Starts Now!",
+                "Think Fast: Riddles That Test Your Wit!",
+                "Only the Sharpest Minds Can Crack These!",
+                "Riddles That Will Make You Think Twice!",
+                "Your Daily Dose of Brain Training!",
+                "Get Ready for Some Mind-Bending Fun!"
+            ],
+            "thinking_patterns": [
+                "Time to think...",
+                "Let's see if you can solve this one!",
+                "Ready to solve this riddle?",
+                "Take a moment to think...",
+                "Can you figure it out?",
+                "Put on your thinking cap!",
+                "The clock is ticking...",
+                "Think carefully about this one...",
+                "Need a hint? Look closely!",
+                "Your brain might need a stretch for this one!",
+                "Take your time, but not too much!",
+                "The answer is hiding in plain sight...",
+                "Focus... you've got this!",
+                "Here's where it gets interesting...",
+                "Don't overthink it!",
+                "The solution might surprise you...",
+                "Pause and ponder this puzzle...",
+                "Every detail matters in this one...",
+                "Let the clues guide you...",
+                "Sometimes the obvious answer is wrong..."
+            ],
+            "next_riddle_patterns": [
+                "Next Riddle...",
+                "Ready for the next one?",
+                "Let's move on to the next one!",
+                "Here comes another challenge!",
+                "Think you can handle another?",
+                "The next riddle awaits...",
+                "Get ready for the next brain teaser!",
+                "Another mind-bender coming up!",
+                "Prepare yourself for the next riddle!",
+                "Time for another puzzle!",
+                "But wait, there's more...",
+                "The challenges keep coming!",
+                "Your next test awaits...",
+                "Ready to level up?",
+                "Keep that brain working!",
+                "The fun's not over yet...",
+                "Here's a fresh challenge for you!",
+                "Can you handle what's next?",
+                "Your mind ready for more?",
+                "The next brain-twister is here!"
+            ],
+            "call_to_action_patterns": [
+                "Like and follow for more brain teasers!",
+                "Follow us for daily riddles!",
+                "Want more riddles? Hit that follow button!",
+                "Did you solve it? Let us know in the comments!",
+                "Share your answer in the comments below!",
+                "Follow for daily brain training!",
+                "Tag a friend who loves riddles!",
+                "How many did you get right? Comment below!",
+                "Subscribe for more mind-bending puzzles!",
+                "Join our community of riddle solvers!",
+                "Think you're good at riddles? Prove it in the comments!",
+                "Don't forget to share with your smart friends!",
+                "Challenge your friends to solve these riddles!",
+                "Like if you got it right, follow for more!",
+                "Share your solving strategy below!",
+                "Rate this riddle's difficulty in the comments!",
+                "Follow us to train your brain daily!",
+                "Join the smartest community on TikTok!",
+                "Become a riddle master - follow now!",
+                "Show off your genius in the comments!"
+            ]
+        }
+    },
+    "openai": {
+        "model": "gpt-4o-2024-08-06",
+        "temperature": 0.7,
+        "max_tokens": 500,
+        "max_attempts": 3,
+        "cache_dir": "cache/riddles",
+        "riddle_generation": {
+            "difficulty_levels": {
+                "easy": {
+                    "complexity": 0.3,
+                    "educational_level": "elementary"
+                },
+                "medium": {
+                    "complexity": 0.6,
+                    "educational_level": "high_school"
+                },
+                "hard": {
+                    "complexity": 0.9,
+                    "educational_level": "college"
+                }
+            },
+            "templates": {
+                "biker_mechanic": {
+                    "system_prompt": "You are a biker mechanic creating riddles about advanced bike mechanics. Focus on components like derailleurs, bottom brackets, hub internals, suspension systems, and hydraulic brakes. Use authentic mechanic terminology and real mechanical principles in your riddles.",
+                    "example_format": "I spin freely one way but lock the other, inside my shell are pawls and springs. What am I? Answer: A freehub mechanism"
+                },
+                "geography": {
+                    "system_prompt": "You are a geography expert creating engaging riddles about countries, landmarks, and geographical features.",
+                    "example_format": "I have cities but no houses, rivers but no water, forests but no trees. What am I? Answer: A map"
+                },
+                "math": {
+                    "system_prompt": "You are a mathematics expert creating riddles that make math fun and engaging.",
+                    "example_format": "The more you take away, the larger I become. What am I? Answer: A hole"
+                },
+                "physics": {
+                    "system_prompt": "You are a physics expert creating riddles about physical phenomena and scientific concepts.",
+                    "example_format": "I am faster than light but cannot escape a mirror. What am I? Answer: A reflection"
+                },
+                "history": {
+                    "system_prompt": "You are a history expert creating riddles about historical events, figures, and discoveries.",
+                    "example_format": "I was signed in 1776, I declared something great, I helped make a nation, What date am I? Answer: July 4th"
+                },
+                "logic": {
+                    "system_prompt": "You are a logic expert creating riddles that challenge the mind with deductive reasoning.",
+                    "example_format": "Two fathers and two sons went fishing together. They caught three fish which they shared equally. How is this possible? Answer: There were only three people - a grandfather, his son, and his grandson"
+                },
+                "wordplay": {
+                    "system_prompt": "You are a wordsmith creating riddles that play with language, puns, and double meanings.",
+                    "example_format": "What has keys but no locks, space but no room, and you can enter but not go in? Answer: A keyboard"
+                }
+            }
+        }
+    }
+}
