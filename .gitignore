@@ -40,6 +40,8 @@ output/
 *.mp4
 *.mp3
 *.wav
+!src/riddler/resources/assets/audio/countdown.mp3
+!src/riddler/resources/assets/audio/reveal.mp3
 
 # Test coverage
 .coverage
@@ -50,3 +52,4 @@ htmlcov/
 # Distribution
 dist/
 build/
+temp-audio.m4a.log
