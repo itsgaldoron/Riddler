@@ -1,0 +1,27 @@
+ffmpeg version 4.4.2 Copyright (c) 2000-2021 the FFmpeg developers
+  built with clang version 16.0.6
+  configuration: --prefix=/Users/galdoron/miniconda3 --cc=arm64-apple-darwin20.0.0-clang --cxx=arm64-apple-darwin20.0.0-clang++ --nm=arm64-apple-darwin20.0.0-nm --ar=arm64-apple-darwin20.0.0-ar --disable-doc --disable-openssl --enable-avresample --enable-demuxer=dash --enable-hardcoded-tables --enable-libfreetype --enable-libfontconfig --enable-libopenh264 --enable-cross-compile --arch=arm64 --target-os=darwin --cross-prefix=arm64-apple-darwin20.0.0- --host-cc=/Users/runner/miniforge3/conda-bld/ffmpeg_1697114035695/_build_env/bin/x86_64-apple-darwin13.4.0-clang --enable-neon --enable-gnutls --enable-libmp3lame --enable-libvpx --enable-pthreads --enable-gpl --enable-libx264 --enable-libx265 --enable-libaom --enable-libsvtav1 --enable-libxml2 --enable-pic --enable-shared --disable-static --enable-version3 --enable-zlib --pkg-config=/Users/runner/miniforge3/conda-bld/ffmpeg_1697114035695/_build_env/bin/pkg-config
+  libavutil      56. 70.100 / 56. 70.100
+  libavcodec     58.134.100 / 58.134.100
+  libavformat    58. 76.100 / 58. 76.100
+  libavdevice    58. 13.100 / 58. 13.100
+  libavfilter     7.110.100 /  7.110.100
+  libavresample   4.  0.  0 /  4.  0.  0
+  libswscale      5.  9.100 /  5.  9.100
+  libswresample   3.  9.100 /  3.  9.100
+  libpostproc    55.  9.100 / 55.  9.100
+Guessed Channel Layout for Input Stream #0.0 : stereo
+Input #0, s32le, from 'pipe:':
+  Duration: N/A, bitrate: 2822 kb/s
+  Stream #0:0: Audio: pcm_s32le, 44100 Hz, stereo, s32, 2822 kb/s
+Stream mapping:
+  Stream #0:0 -> #0:0 (pcm_s32le (native) -> aac (native))
+Output #0, ipod, to 'temp-audio.m4a':
+  Metadata:
+    encoder         : Lavf58.76.100
+  Stream #0:0: Audio: aac (LC) (mp4a / 0x6134706D), 44100 Hz, stereo, fltp, 128 kb/s
+    Metadata:
+      encoder         : Lavc58.134.100 aac
+size=       0kB time=00:00:00.00 bitrate=N/A speed=   0x    size=     768kB time=00:01:04.89 bitrate=  96.9kbits/s speed= 130x    size=    1438kB time=00:01:33.87 bitrate= 125.5kbits/s speed= 134x    
+video:0kB audio:1422kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 1.167874%
+[aac @ 0x153034800] Qavg: 6812.719
