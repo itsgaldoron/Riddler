@@ -4,52 +4,72 @@ import hashlib
 import pickle
 import zlib
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 from concurrent.futures import ThreadPoolExecutor
 from riddler.utils.logger import log
-from riddler.config.config import Configuration as Config
+
+class CacheConfig:
+    """Cache configuration."""
+    
+    def __init__(self, config: Optional[Dict] = None):
+        """Initialize cache configuration.
+        
+        Args:
+            config: Configuration dictionary
+        """
+        config = config or {}
+        cache_config = config.get("cache", {})
+        
+        # Size limits
+        self.max_size = cache_config.get("max_cache_size", 10 * 1024 * 1024 * 1024)  # Default 10GB
+        self.cleanup_threshold = cache_config.get("cleanup_threshold", 0.9)
+        
+        # Threading
+        self.max_workers = cache_config.get("max_workers", 4)
+        
+        # Compression
+        self.default_compression = cache_config.get("default_compression", 6)
+        self.compress_threshold = cache_config.get("compress_threshold", 1024)  # 1KB
 
 class CacheManager:
-    """Manages caching of data with compression and organization."""
+    """Cache management class."""
     
-    def __init__(
-        self,
-        base_dir: str = "cache",
-        max_size: Optional[int] = None,
-        cleanup_threshold: Optional[float] = None,
-        max_workers: int = 4
-    ):
+    def __init__(self, cache_dir: str, config: Optional[Dict] = None):
         """Initialize cache manager.
         
         Args:
-            base_dir: Base cache directory
-            max_size: Maximum cache size in bytes
-            cleanup_threshold: Cleanup threshold (0-1)
-            max_workers: Maximum number of worker threads
+            cache_dir: Directory to store cache files
+            config: Optional configuration dictionary
         """
-        self.config = Config()
-        self.base_dir = Path(base_dir)
+        self._cache_dir = Path(cache_dir)
+        self._config = CacheConfig(config)
+        self.logger = log
         
-        # Use config values or defaults
-        self.max_size = max_size or self.config.get("cache.max_cache_size", 10 * 1024 * 1024 * 1024)  # Default 10GB
-        self.cleanup_threshold = cleanup_threshold or self.config.get("cache.cleanup_threshold", 0.9)
-        
-        # Create directory
-        self.base_dir.mkdir(parents=True, exist_ok=True)
+        # Create cache directory if it doesn't exist
+        self._cache_dir.mkdir(parents=True, exist_ok=True)
         
         # Initialize executor for async operations
         self.executor = ThreadPoolExecutor(
-            max_workers=max_workers,
+            max_workers=self._config.max_workers,
             thread_name_prefix="cache"
         )
         
         # Initialize stats
         self.stats = CacheStats()
+        self._total_size = self._calculate_total_size()
         
+    def _calculate_total_size(self) -> int:
+        """Calculate total size of cache directory."""
+        return sum(
+            f.stat().st_size
+            for f in self._cache_dir.rglob("*")
+            if f.is_file()
+        )
+
     @property
     def cache_dir(self) -> str:
         """Get the cache directory path."""
-        return str(self.base_dir)
+        return str(self._cache_dir)
 
     def _update_stats(self, hit: bool = False, size_delta: int = 0) -> None:
         """Update cache statistics."""
@@ -57,15 +77,17 @@ class CacheManager:
             self.stats.hits += 1
         else:
             self.stats.misses += 1
-        self.stats.size_bytes += size_delta
+        
+        self._total_size += size_delta
+        self.stats.size_bytes = self._total_size
         
         # Save stats
-        stats_path = self.base_dir / "stats.pkl"
+        stats_path = self._cache_dir / "stats.pkl"
         try:
             with open(stats_path, "wb") as f:
                 pickle.dump(self.stats, f)
         except Exception as e:
-            log.warning(f"Failed to save cache stats: {e}")
+            self.logger.warning(f"Failed to save cache stats: {e}")
 
     def _get_cache_path(self, key: str, extension: str = None) -> Path:
         """Get cache file path.
@@ -79,7 +101,7 @@ class CacheManager:
         """
         filename = hashlib.sha256(key.encode()).hexdigest()
         subdir = filename[:2]
-        path = self.base_dir / subdir
+        path = self._cache_dir / subdir
         path.mkdir(exist_ok=True)
         
         # Use provided extension or default to .pkl for serialized data
@@ -117,8 +139,15 @@ class CacheManager:
                 # Serialize and optionally compress other data
                 path = self._get_cache_path(key)
                 serialized_data = pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL)
-                if compression_level is not None:
-                    serialized_data = zlib.compress(serialized_data, level=compression_level)
+                
+                # Apply compression if:
+                # 1. Explicitly requested via compression_level
+                # 2. Data size exceeds threshold and compression not disabled
+                if len(serialized_data) > self._config.compress_threshold:
+                    level = compression_level if compression_level is not None else self._config.default_compression
+                    if level > 0:
+                        serialized_data = zlib.compress(serialized_data, level=level)
+                
                 path.write_bytes(serialized_data)
                 size = path.stat().st_size
                 
@@ -127,7 +156,7 @@ class CacheManager:
             return True
             
         except Exception as e:
-            log.warning(f"Failed to write cache item {key}: {e}")
+            self.logger.warning(f"Failed to write cache item {key}: {e}")
             return False
 
     def get(self, key: str) -> Optional[Any]:
@@ -163,7 +192,7 @@ class CacheManager:
                     return data
                     
                 except Exception as e:
-                    log.warning(f"Failed to read cache item {key}: {e}")
+                    self.logger.warning(f"Failed to read cache item {key}: {e}")
                     continue
         
         self._update_stats(hit=False)
@@ -171,18 +200,18 @@ class CacheManager:
 
     def _should_cleanup(self) -> bool:
         """Check if cleanup is needed."""
-        total_size = sum(
-            f.stat().st_size
-            for f in self.base_dir.rglob("*")
-            if f.is_file()
-        )
-        return total_size > self.max_size * self.cleanup_threshold
+        return self._total_size > self._config.max_size * self._config.cleanup_threshold
 
     def cleanup(self) -> None:
         """Clean up old cache files."""
         try:
+            # Verify total size
+            actual_size = self._calculate_total_size()
+            if actual_size != self._total_size:
+                self._total_size = actual_size  # Correct if drift occurred
+            
             files = []
-            for path in self.base_dir.rglob("*"):
+            for path in self._cache_dir.rglob("*"):
                 if path.is_file():
                     files.append((path, path.stat().st_mtime))
                     
@@ -190,7 +219,7 @@ class CacheManager:
             total_size = sum(path.stat().st_size for path, _ in files)
             
             for path, _ in files:
-                if total_size <= self.max_size * 0.8:
+                if total_size <= self._config.max_size * 0.8:
                     break
                     
                 try:
@@ -198,10 +227,10 @@ class CacheManager:
                     path.unlink()
                     total_size -= size
                 except Exception as e:
-                    log.warning(f"Failed to remove cache file {path}: {e}")
+                    self.logger.warning(f"Failed to remove cache file {path}: {e}")
                     
         except Exception as e:
-            log.error(f"Failed to clean cache: {e}")
+            self.logger.error(f"Failed to clean cache: {e}")
 
 class CacheStats:
     """Cache statistics."""
@@ -216,7 +245,4 @@ class CacheStats:
     def hit_rate(self) -> float:
         """Calculate cache hit rate."""
         total = self.hits + self.misses
-        return self.hits / total if total > 0 else 0
-
-# Initialize global cache instance
-cache = CacheManager() 
+        return self.hits / total if total > 0 else 0 

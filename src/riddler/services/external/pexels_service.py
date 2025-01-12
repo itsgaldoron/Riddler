@@ -13,6 +13,22 @@ from riddler.utils.logger import log, StructuredLogger
 from riddler.utils.validators import validate_category
 from riddler.config.exceptions import VideoError
 
+class PexelsConfig:
+    """Pexels service configuration."""
+    
+    def __init__(self, config: Dict):
+        """Initialize from config dict."""
+        video_config = config.get("video", {})
+        pexels_config = video_config.get("pexels", {})
+        
+        self.min_duration = pexels_config.get("min_duration", 3)
+        self.max_duration = pexels_config.get("max_duration", 3)
+        self.min_width = pexels_config.get("min_width", 1080)
+        self.min_height = pexels_config.get("min_height", 1920)
+        self.orientation = pexels_config.get("orientation", "portrait")
+        self.cache_dir = pexels_config.get("cache_dir", "cache/video")
+        self.category_terms = pexels_config.get("category_terms", {})
+
 class PexelsService:
     """Service for retrieving videos from Pexels"""
     
@@ -31,28 +47,34 @@ class PexelsService:
         
         Args:
             config: Configuration dictionary
-            min_duration: Minimum video duration in seconds
-            max_duration: Maximum video duration in seconds
-            min_width: Minimum video width
-            min_height: Minimum video height
-            orientation: Video orientation (portrait/landscape)
-            cache_dir: Cache directory for videos
+            min_duration: Override minimum video duration in seconds
+            max_duration: Override maximum video duration in seconds
+            min_width: Override minimum video width
+            min_height: Override minimum video height
+            orientation: Override video orientation (portrait/landscape)
+            cache_dir: Override cache directory for videos
             logger: Logger instance
         """
+        # Initialize configuration
+        self._config = PexelsConfig(config)
+        
+        # Allow parameter overrides
+        self.min_duration = min_duration or self._config.min_duration
+        self.max_duration = max_duration or self._config.max_duration
+        self.min_width = min_width or self._config.min_width
+        self.min_height = min_height or self._config.min_height
+        self.orientation = orientation or self._config.orientation
+        
+        # Initialize API and services
         self.api_key = get_api_key("pexels")
-        self.min_duration = min_duration or config.get("video", {}).get("pexels", {}).get("min_duration", 3)
-        self.max_duration = max_duration or config.get("video", {}).get("pexels", {}).get("max_duration", 3)
-        self.min_width = min_width or config.get("video", {}).get("pexels", {}).get("min_width", 1080)
-        self.min_height = min_height or config.get("video", {}).get("pexels", {}).get("min_height", 1920)
-        self.orientation = orientation or config.get("video", {}).get("pexels", {}).get("orientation", "portrait")
         self.base_url = "https://api.pexels.com/videos"
-        self.cache = CacheManager(cache_dir or config.get("video", {}).get("pexels", {}).get("cache_dir", "cache/video"))
+        self.cache = CacheManager(
+            cache_dir or self._config.cache_dir,
+            config=config
+        )
         self.logger = logger or log
         
-        # Get category terms from config - fix nested access
-        pexels_config = config.get("video", {}).get("pexels", {})
-        self.category_terms = pexels_config.get("category_terms", {})
-        self.logger.info(f"Loaded category terms: {list(self.category_terms.keys())}")
+        self.logger.info(f"Loaded category terms: {list(self._config.category_terms.keys())}")
     
     def get_video(self, category: str) -> str:
         """Get a video for the given category
@@ -68,10 +90,10 @@ class PexelsService:
         """
         try:
             # Validate category
-            validate_category(category)
+            validate_category(category, self._config.category_terms)
             
             # Get search terms for category
-            search_terms = self.category_terms.get(category.lower())
+            search_terms = self._config.category_terms.get(category.lower())
             if not search_terms:
                 raise VideoError(f"No search terms found for category: {category}")
             

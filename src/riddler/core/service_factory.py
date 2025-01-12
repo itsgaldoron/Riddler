@@ -43,7 +43,8 @@ class ServiceFactory:
                 stability=float(self.config.get("tts", {}).get("stability", 0.5)),
                 similarity_boost=float(self.config.get("tts", {}).get("similarity_boost", 0.75)),
                 cache_dir=self.config.get("tts", {}).get("cache_dir", "cache/voice"),
-                logger=self.logger
+                logger=self.logger,
+                config=self.config
             )
         )
 

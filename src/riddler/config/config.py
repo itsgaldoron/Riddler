@@ -32,6 +32,9 @@ class Configuration:
                 with open(config_path, 'r') as f:
                     user_config = json.load(f)
                     self.config.update(user_config)
+                self.logger.info(f"Successfully loaded user configuration from {config_path}")
+            else:
+                self.logger.warning(f"No user configuration found at {config_path}")
                 
         except json.JSONDecodeError as e:
             raise ConfigurationError(f"Failed to parse configuration: {str(e)}")

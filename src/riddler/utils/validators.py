@@ -1,14 +1,15 @@
 """Input validation utilities"""
 
 import os
-from typing import List
+from typing import List, Optional, Dict
 from riddler.config.config import Configuration as Config
 
-def validate_category(category: str) -> bool:
+def validate_category(category: str, category_terms: Optional[Dict] = None) -> bool:
     """Validate riddle category
     
     Args:
         category: Category to validate
+        category_terms: Optional dictionary of valid category terms
         
     Returns:
         True if valid
@@ -16,10 +17,18 @@ def validate_category(category: str) -> bool:
     Raises:
         ValueError: If category is invalid
     """
-    config = Config()
-    video_config = config.get("video", {})
-    pexels_config = video_config.get("pexels", {})
-    category_terms = pexels_config.get("category_terms", {})
+    if category_terms is None:
+        # Default categories if none provided
+        category_terms = {
+            'geography': [],
+            'math': [],
+            'physics': [],
+            'history': [],
+            'logic': [],
+            'wordplay': [],
+            'biker_mechanic': []
+        }
+    
     valid_categories = list(category_terms.keys())
     
     if not category or category not in valid_categories:

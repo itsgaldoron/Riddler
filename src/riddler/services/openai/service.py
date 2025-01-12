@@ -53,7 +53,7 @@ class OpenAIService(OpenAIServiceBase):
         
         # Initialize cache
         cache_dir = config.get("openai", {}).get("cache_dir", "cache/riddles")
-        self.cache = CacheManager(cache_dir)
+        self.cache = CacheManager(cache_dir, config=config)
         
         # Load templates and difficulty levels
         self.templates = config.get("openai", {}).get("riddle_generation", {}).get("templates", {})
@@ -108,12 +108,13 @@ class OpenAIService(OpenAIServiceBase):
                         json.dumps(params, sort_keys=True).encode()
                     ).hexdigest()
                 
-                self.logger.info(f"Cache key: {cache_key}")
-                # Check cache
-                cached_data = self.cache.get(cache_key)
-                if cached_data and isinstance(cached_data, list):
-                    self.logger.info("Using cached riddles")
-                    return cached_data
+                if cache_key:  # Only check cache if we have a valid key
+                    self.logger.info(f"Cache key: {cache_key}")
+                    # Check cache
+                    cached_data = self.cache.get(cache_key)
+                    if cached_data and isinstance(cached_data, list):
+                        self.logger.info("Using cached riddles")
+                        return cached_data
             else:
                 self.logger.info("Cache disabled, generating new riddles")
             
@@ -155,8 +156,9 @@ class OpenAIService(OpenAIServiceBase):
                     "target_age": target_age
                 })
             
-            # Cache result
-            self.cache.put(cache_key, riddle_data)
+            # Cache result if we have a valid key
+            if cache_key and not no_cache:
+                self.cache.put(cache_key, riddle_data)
             
             return riddle_data
             

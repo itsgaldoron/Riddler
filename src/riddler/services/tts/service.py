@@ -5,7 +5,7 @@ import os
 import hashlib
 import requests
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict
 from riddler.utils.decorators import retry
 from riddler.utils.cache import CacheManager
 from riddler.utils.logger import log
@@ -23,7 +23,8 @@ class TTSService(TTSServiceBase):
         stability: float = 0.5,
         similarity_boost: float = 0.75,
         logger=None,
-        cache_dir: str = "cache/voice"
+        cache_dir: str = "cache/voice",
+        config: Optional[Dict] = None
     ):
         """Initialize TTS service.
         
@@ -35,6 +36,7 @@ class TTSService(TTSServiceBase):
             similarity_boost: Voice similarity boost
             logger: Optional logger instance
             cache_dir: Cache directory for audio files
+            config: Optional configuration dictionary
         """
         self.base_url = "https://api.elevenlabs.io/v1"
         self.api_key = api_key
@@ -45,7 +47,7 @@ class TTSService(TTSServiceBase):
         self.logger = logger or logging.getLogger(__name__)
         
         # Initialize cache
-        self.cache = CacheManager(cache_dir)
+        self.cache = CacheManager(cache_dir, config=config)
         
         # Verify API key
         self._verify_api_key()
@@ -114,7 +116,7 @@ class TTSService(TTSServiceBase):
             )
             
             # Create cache subdirectory
-            cache_subdir = os.path.join(self.cache.base_dir, cache_key[:2])
+            cache_subdir = os.path.join(self.cache.cache_dir, cache_key[:2])
             os.makedirs(cache_subdir, exist_ok=True)
             
             # Full path for cached file
@@ -218,6 +220,9 @@ class TTSService(TTSServiceBase):
         Returns:
             Cache key string
         """
+        if not text:
+            return None
+            
         # Create string with all parameters
         params = f"{text}|{voice_id}|{stability}|{similarity_boost}"
         
