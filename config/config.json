@@ -10,7 +10,7 @@
     },
     "video": {
         "min_duration": 60,
-        "max_duration": 90,
+        "max_duration": 120,
         "min_width": 1080,
         "min_height": 1920,
         "orientation": "portrait",
@@ -78,7 +78,7 @@
         },
         "duration": {
             "min_total": 60,
-            "max_total": 90,
+            "max_total": 120,
             "target_total": 75,
             "min_segment": 3,
             "max_segment": 3
