@@ -34,17 +34,22 @@ class ServiceFactory:
 
     def get_tts_service(self) -> TTSService:
         """Get or create TTSService instance."""
+        # Update config with TTS-specific settings
+        tts_config = self.config.setdefault("tts", {})
+        tts_config.update({
+            "api_key": get_api_key("elevenlabs"),
+            "voice_id": tts_config.get("voice_id", "pqHfZKP75CvOlQylNhV4"),
+            "model": tts_config.get("model", "eleven_monolingual_v1"),
+            "stability": float(tts_config.get("stability", 0.5)),
+            "similarity_boost": float(tts_config.get("similarity_boost", 0.75)),
+            "cache_dir": tts_config.get("cache_dir", "cache/voice")
+        })
+        
         return self._get_or_create_service(
             "tts",
             lambda: TTSService(
-                api_key=get_api_key("elevenlabs"),
-                voice_id=self.config.get("tts", {}).get("voice_id", "pqHfZKP75CvOlQylNhV4"),
-                model=self.config.get("tts", {}).get("model", "eleven_monolingual_v1"),
-                stability=float(self.config.get("tts", {}).get("stability", 0.5)),
-                similarity_boost=float(self.config.get("tts", {}).get("similarity_boost", 0.75)),
-                cache_dir=self.config.get("tts", {}).get("cache_dir", "cache/voice"),
-                logger=self.logger,
-                config=self.config
+                config=self.config,
+                logger=self.logger
             )
         )
 

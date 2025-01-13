@@ -1,7 +1,7 @@
 import logging
 import uuid
 import random
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from riddler.config.config import Configuration
 from riddler.core.service_factory import ServiceFactory
 from riddler.config.exceptions import RiddlerException
@@ -56,11 +56,11 @@ class Application:
         voice_id: Optional[str] = None,
         stability: Optional[float] = None,
         similarity_boost: Optional[float] = None
-    ) -> str:
+    ) -> Tuple[str, Dict]:
         """Generate speech from text using TTS service."""
         try:
             tts_service = self.service_factory.get_tts_service()
-            return tts_service.generate_speech(
+            return tts_service.generate_speech_with_timestamps(
                 text=text,
                 voice_id=voice_id,
                 stability=stability,
@@ -98,23 +98,25 @@ class Application:
             # Add hook segment for first riddle
             if i == 0:
                 hook_text = self._get_random_pattern("hook_patterns", "Can you solve this riddle?")
-                hook_speech = self.generate_speech(hook_text)
+                hook_speech, hook_timestamps = self.generate_speech(hook_text)
                 segments.append({
                     "id": f"hook_{uuid.uuid4().hex[:8]}",
                     "type": "hook",
                     "text": hook_text,
                     "voice_path": hook_speech,
+                    "timestamps": hook_timestamps,
                     "index": len(segments),
                     "emoji": self._get_difficulty_emoji(difficulty)
                 })
             
             # Add riddle question segment
-            question_speech = self.generate_speech(riddle["riddle"])
+            question_speech, question_timestamps = self.generate_speech(riddle["riddle"])
             segments.append({
                 "id": f"question_{uuid.uuid4().hex[:8]}",
                 "type": "question",
                 "text": riddle["riddle"],
                 "voice_path": question_speech,
+                "timestamps": question_timestamps,
                 "index": len(segments)
             })
             
@@ -128,35 +130,38 @@ class Application:
             })
             
             # Add answer segment
-            answer_speech = self.generate_speech(riddle["answer"])
+            answer_speech, answer_timestamps = self.generate_speech(riddle["answer"])
             segments.append({
                 "id": f"answer_{uuid.uuid4().hex[:8]}",
                 "type": "answer",
                 "text": riddle["answer"],
                 "voice_path": answer_speech,
+                "timestamps": answer_timestamps,
                 "index": len(segments)
             })
             
             # Add transition for all but last riddle
             if i < len(riddles) - 1:
                 next_text = self._get_random_pattern("next_riddle_patterns", "Next riddle...")
-                next_speech = self.generate_speech(next_text)
+                next_speech, next_timestamps = self.generate_speech(next_text)
                 segments.append({
                     "id": f"transition_{uuid.uuid4().hex[:8]}",
                     "type": "transition",
                     "text": next_text,
                     "voice_path": next_speech,
+                    "timestamps": next_timestamps,
                     "index": len(segments)
                 })
         
         # Add call to action at the end
         cta_text = self._get_random_pattern("call_to_action_patterns", "Follow for more riddles!")
-        cta_speech = self.generate_speech(cta_text)
+        cta_speech, cta_timestamps = self.generate_speech(cta_text)
         segments.append({
             "id": f"cta_{uuid.uuid4().hex[:8]}",
             "type": "cta",
             "text": cta_text,
             "voice_path": cta_speech,
+            "timestamps": cta_timestamps,
             "index": len(segments)
         })
         

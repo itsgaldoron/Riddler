@@ -37,11 +37,14 @@ class SegmentService(SegmentServiceBase):
             # Add text overlay if specified
             text = segment.get("text")
             if text:
-
+                # Get timestamps if available
+                timestamps = segment.get("timestamps")
+                
                 clip = self.text_overlay.create_text_overlay(
                     clip, 
                     text,
-                    emoji=segment.get("emoji")
+                    emoji=segment.get("emoji"),
+                    timestamps=timestamps
                 )
 
             return clip

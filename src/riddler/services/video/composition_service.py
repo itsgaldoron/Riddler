@@ -59,7 +59,8 @@ class VideoCompositionService(VideoCompositionServiceBase):
                     processed_segment = {
                         "video_path": video_path,
                         "text": segment.get("text", ""),
-                        "emoji": segment.get("emoji", "")
+                        "emoji": segment.get("emoji", ""),
+                        "timestamps": segment.get("timestamps")
                     }
                     
                     # Process the segment using SegmentService

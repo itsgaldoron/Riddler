@@ -24,7 +24,13 @@ class VideoEffectsServiceBase(ABC):
 
 class TextOverlayServiceBase(ABC):
     @abstractmethod
-    def create_text_overlay(self, frame: np.ndarray, text: str, emoji: Optional[str] = None) -> np.ndarray:
+    def create_text_overlay(
+        self, 
+        clip: VideoFileClip, 
+        text: str, 
+        emoji: Optional[str] = None,
+        timestamps: Optional[Dict] = None
+    ) -> VideoFileClip:
         pass
 
     @abstractmethod
