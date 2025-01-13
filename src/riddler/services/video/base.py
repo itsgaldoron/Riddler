@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List
+from typing import Dict, List, Optional
 import numpy as np
 from moviepy.editor import VideoFileClip, CompositeVideoClip
 
@@ -24,7 +24,7 @@ class VideoEffectsServiceBase(ABC):
 
 class TextOverlayServiceBase(ABC):
     @abstractmethod
-    def create_text_overlay(self, frame: np.ndarray, text: str) -> np.ndarray:
+    def create_text_overlay(self, frame: np.ndarray, text: str, emoji: Optional[str] = None) -> np.ndarray:
         pass
 
     @abstractmethod

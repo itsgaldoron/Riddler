@@ -91,7 +91,8 @@ def main() -> Optional[int]:
         app.create_riddle_video(
             riddles=riddles,
             output_path=output_path,
-            category=args.category
+            category=args.category,
+            difficulty=args.difficulty
         )
         
         log.info(f"Successfully created video: {output_path}")

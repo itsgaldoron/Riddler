@@ -65,7 +65,7 @@
             "font_thickness": 2,
             "font_color": [255, 255, 255],
             "background_color": [0, 0, 0],
-            "font_size": 36,
+            "font_size": 48,
             "font_family": "Arial",
             "background_opacity": 0.5,
             "position": "smart"
@@ -99,7 +99,7 @@
     },
     "presentation": {
         "text_overlay": {
-            "font_size": 48,
+            "font_size": 72,
             "font_family": "Arial",
             "color": "#FFFFFF",
             "background_opacity": 0.6,

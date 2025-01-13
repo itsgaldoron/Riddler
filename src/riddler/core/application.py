@@ -70,7 +70,19 @@ class Application:
             self.logger.error(f"Failed to generate speech: {str(e)}")
             raise RiddlerException(f"Failed to generate speech: {str(e)}")
 
-    def _create_video_segments(self, riddles: List[Dict[str, str]]) -> List[Dict]:
+    def _get_difficulty_emoji(self, difficulty: Optional[str] = None) -> str:
+        """Get emoji string based on difficulty level."""
+        if not difficulty:
+            return ""
+        
+        emoji_map = {
+            "easy": "🧠",
+            "medium": "🧠🧠",
+            "hard": "🧠🧠🧠"
+        }
+        return emoji_map.get(difficulty, "")
+    
+    def _create_video_segments(self, riddles: List[Dict[str, str]], difficulty: str) -> List[Dict]:
         """Transform riddles into video segments with proper timing and structure.
         
         Args:
@@ -92,7 +104,8 @@ class Application:
                     "type": "hook",
                     "text": hook_text,
                     "voice_path": hook_speech,
-                    "index": len(segments)
+                    "index": len(segments),
+                    "emoji": self._get_difficulty_emoji(difficulty)
                 })
             
             # Add riddle question segment
@@ -166,7 +179,8 @@ class Application:
         self,
         riddles: List[Dict[str, str]],
         output_path: str,
-        category: str
+        category: str,
+        difficulty: str
     ) -> bool:
         """Create a riddle video from the provided riddles.
         
@@ -180,7 +194,7 @@ class Application:
         """
         try:
             # Transform riddles into video segments
-            segments = self._create_video_segments(riddles)
+            segments = self._create_video_segments(riddles, difficulty)
             
             # Get the video composition service
             video_service = self.service_factory.get_video_composition_service()

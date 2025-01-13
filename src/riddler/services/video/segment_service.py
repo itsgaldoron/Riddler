@@ -1,5 +1,5 @@
 import logging
-from typing import Dict
+from typing import Dict, Optional
 from moviepy.editor import VideoFileClip
 from riddler.config.exceptions import SegmentServiceError
 from riddler.services.video.base import SegmentServiceBase
@@ -19,6 +19,7 @@ class SegmentService(SegmentServiceBase):
         self.config = config or {}
         self.logger = logger or logging.getLogger(__name__)
 
+
     def process_segment(self, segment: Dict, timing: Dict[str, float]) -> VideoFileClip:
         """Process a single video segment with effects and overlays."""
         try:
@@ -36,7 +37,12 @@ class SegmentService(SegmentServiceBase):
             # Add text overlay if specified
             text = segment.get("text")
             if text:
-                clip = self.text_overlay.create_text_overlay(clip, text)
+
+                clip = self.text_overlay.create_text_overlay(
+                    clip, 
+                    text,
+                    emoji=segment.get("emoji")
+                )
 
             return clip
 

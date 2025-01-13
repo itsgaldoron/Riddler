@@ -48,6 +48,8 @@ class VideoCompositionService(VideoCompositionServiceBase):
             # Process video segments
             video_segments = []
             
+            self.logger.info(f"Riddle segments: {riddle_segments}")
+            
             for segment, timing in zip(riddle_segments, segment_timings):
                 try:
                     # Get background video
@@ -56,7 +58,8 @@ class VideoCompositionService(VideoCompositionServiceBase):
                     # Create segment with video path and text
                     processed_segment = {
                         "video_path": video_path,
-                        "text": segment.get("text", "")
+                        "text": segment.get("text", ""),
+                        "emoji": segment.get("emoji", "")
                     }
                     
                     # Process the segment using SegmentService

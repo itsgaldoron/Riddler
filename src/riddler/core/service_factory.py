@@ -81,7 +81,7 @@ class ServiceFactory:
         return self._get_or_create_service(
             "text_overlay",
             lambda: TextOverlayService(
-                config=self.config,
+                config=self.config.get("video", {}),
                 logger=self.logger
             )
         )
