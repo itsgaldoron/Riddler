@@ -116,7 +116,8 @@ A riddle is considered too similar if it:
 
 Existing riddles:
 """
-        for i, riddle in enumerate(existing_riddles[:40], 1):  # Limit to 10 most recent for comparison
+        # Use all existing riddles since they are already limited by _get_category_riddles
+        for i, riddle in enumerate(existing_riddles, 1):
             prompt += f"{i}. Q: {riddle['riddle']}\n   A: {riddle['answer']}\n"
         
         prompt += "\nNew riddles to check:\n"
@@ -158,8 +159,8 @@ Existing riddles:
         difficulty_config = self.difficulty_levels.get(difficulty, {})
         educational_level = difficulty_config.get("educational_level", "general")
         
-        # Get recent riddles for this category (limit to 5 most recent)
-        recent_riddles = self._get_category_riddles(category, limit=40)  # Reduced from 20 to 5
+        # Get recent riddles for this category (limit to 200 most recent)
+        recent_riddles = self._get_category_riddles(category, limit=200)
         existing_riddles_prompt = ""
         if recent_riddles:
             existing_riddles_prompt = "\n\nRecent riddles (DO NOT create similar riddles):\n"
@@ -225,7 +226,7 @@ Response must be a list of {num_riddles} objects, each containing 'riddle' and '
             category_dir.mkdir(parents=True, exist_ok=True)
             
             # Get existing riddles for similarity check
-            existing_riddles = self._get_category_riddles(category) if not no_cache else []
+            existing_riddles = self._get_category_riddles(category, limit=200) if not no_cache else []
             
             # Generate cache key if not provided and caching is enabled
             if not no_cache:
@@ -480,7 +481,7 @@ Response must be a list of {num_riddles} objects, each containing 'riddle' and '
         if difficulty not in valid_difficulties:
             raise ValueError(f"Invalid difficulty: {difficulty}. Must be one of {valid_difficulties}")
 
-    def _get_category_riddles(self, category: str, limit: Optional[int] = None) -> List[Dict[str, str]]:
+    def _get_category_riddles(self, category: str, limit: int = 200) -> List[Dict[str, str]]:
         """Get cached riddles for a category.
         
         Args:
@@ -497,17 +498,30 @@ Response must be a list of {num_riddles} objects, each containing 'riddle' and '
                 return []
                 
             riddles = []
-            for cache_file in category_dir.glob("*.json"):
+            # Get all JSON files and their modification times
+            cache_files = list(category_dir.glob("*.json"))
+            # Sort files by modification time, newest first
+            cache_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+            
+            # Read files in order of newest first
+            for cache_file in cache_files:
                 try:
                     with open(cache_file) as f:
                         data = json.load(f)
                     if isinstance(data, list):
+                        # Add file timestamp if riddle doesn't have one
+                        file_timestamp = int(cache_file.stat().st_mtime)
+                        for riddle in data:
+                            if 'timestamp' not in riddle:
+                                riddle['timestamp'] = file_timestamp
                         riddles.extend(data)
                 except Exception as e:
                     self.logger.warning(f"Failed to read cache file {cache_file}: {e}")
             
-            # Sort by timestamp if available and return most recent
+            # Sort all riddles by timestamp, newest first
             riddles.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
+            
+            # Limit to the most recent N riddles
             if limit and len(riddles) > limit:
                 riddles = riddles[:limit]
                     
