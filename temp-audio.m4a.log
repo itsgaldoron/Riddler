@@ -22,6 +22,6 @@ Output #0, ipod, to 'temp-audio.m4a':
   Stream #0:0: Audio: aac (LC) (mp4a / 0x6134706D), 44100 Hz, stereo, fltp, 128 kb/s
     Metadata:
       encoder         : Lavc58.134.100 aac
-size=       0kB time=00:00:00.00 bitrate=N/A speed=   0x    size=    1021kB time=00:01:06.71 bitrate= 125.3kbits/s speed= 159x    
-video:0kB audio:1009kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 1.191563%
-[aac @ 0x12d00de00] Qavg: 5553.392
+size=       0kB time=00:00:00.00 bitrate=N/A speed=   0x    size=     512kB time=00:00:47.94 bitrate=  87.5kbits/s speed=95.9x    size=    1319kB time=00:01:27.02 bitrate= 124.2kbits/s speed= 109x    
+video:0kB audio:1304kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 1.185112%
+[aac @ 0x146042400] Qavg: 7372.859

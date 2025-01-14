@@ -3,6 +3,7 @@
 import os
 import json
 import hashlib
+import time
 from typing import Dict, Optional, Any, List
 from openai import OpenAI
 from riddler.config.exceptions import OpenAIError
@@ -10,6 +11,7 @@ from riddler.services.openai.base import OpenAIServiceBase
 from riddler.utils.cache import CacheManager
 from riddler.utils.logger import log
 from pydantic import BaseModel, Field
+from pathlib import Path
 
 class RiddleItem(BaseModel):
     riddle: str = Field(description="The riddle text")
@@ -17,6 +19,9 @@ class RiddleItem(BaseModel):
 
 class RiddleResponse(BaseModel):
     riddles: List[RiddleItem] = Field(description="List of riddles and their answers")
+
+class SimilarityResponse(BaseModel):
+    similarities: List[bool] = Field(description="List of boolean values indicating if each riddle is too similar")
 
 class OpenAIService(OpenAIServiceBase):
     """OpenAI service implementation."""
@@ -27,13 +32,7 @@ class OpenAIService(OpenAIServiceBase):
         api_key: Optional[str] = None,
         logger=None
     ):
-        """Initialize OpenAI service.
-        
-        Args:
-            config: Configuration dictionary
-            api_key: OpenAI API key (defaults to env var)
-            logger: Optional logger instance
-        """
+        """Initialize OpenAI service."""
         self.config = config
         self.logger = logger or log
         
@@ -46,7 +45,7 @@ class OpenAIService(OpenAIServiceBase):
         self.client = OpenAI(api_key=self.api_key)
         
         # Get model configuration
-        self.model = config.get("openai", {}).get("model", "gpt-4o-2024-08-06")
+        self.model = config.get("openai", {}).get("model", "gpt-4o-mini-2024-07-18")
         self.temperature = config.get("openai", {}).get("temperature", 0.7)
         self.max_tokens = config.get("openai", {}).get("max_tokens", 500)
         self.max_attempts = config.get("openai", {}).get("max_attempts", 3)
@@ -54,10 +53,138 @@ class OpenAIService(OpenAIServiceBase):
         # Initialize cache
         cache_dir = config.get("openai", {}).get("cache_dir", "cache/riddles")
         self.cache = CacheManager(cache_dir, config=config)
+        self._cache_dir = Path(cache_dir)
         
         # Load templates and difficulty levels
         self.templates = config.get("openai", {}).get("riddle_generation", {}).get("templates", {})
         self.difficulty_levels = config.get("openai", {}).get("riddle_generation", {}).get("difficulty_levels", {})
+
+    def _generate_similarity_check(self, prompt: str) -> List[bool]:
+        """Generate a similarity check using the OpenAI API."""
+        try:
+            completion = self.client.beta.chat.completions.parse(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": "Check if any new riddles are too similar to existing ones."}
+                ],
+                temperature=0.3,
+                max_tokens=self.max_tokens,
+                response_format=SimilarityResponse
+            )
+            
+            return completion.choices[0].message.parsed.similarities
+            
+        except Exception as e:
+            raise OpenAIError(f"Failed to check similarities: {str(e)}")
+
+    def _batch_similarity_check(self, new_riddles: List[Dict[str, str]], existing_riddles: List[Dict[str, str]], threshold: float = 0.8) -> List[bool]:
+        """Batch check similarity of multiple riddles."""
+        if not existing_riddles:
+            return [False] * len(new_riddles)
+
+        # First do quick exact match checks
+        too_similar = []
+        remaining_riddles = []
+        for riddle in new_riddles:
+            riddle_text = riddle["riddle"].lower().strip()
+            riddle_answer = riddle["answer"].lower().strip()
+            
+            is_similar = False
+            for existing in existing_riddles:
+                existing_text = existing["riddle"].lower().strip()
+                existing_answer = existing["answer"].lower().strip()
+                
+                if riddle_text == existing_text or riddle_answer == existing_answer:
+                    is_similar = True
+                    break
+            
+            too_similar.append(is_similar)
+            if not is_similar:
+                remaining_riddles.append(riddle)
+
+        if not remaining_riddles:
+            return too_similar
+
+        # For remaining riddles, do one batch similarity check
+        prompt = f"""Analyze the following riddles and determine if any new riddles are too similar to existing ones.
+A riddle is considered too similar if it:
+1. Uses the same core concept or theme
+2. Has a very similar solution approach
+3. Uses similar word patterns or structure
+4. Has similarity score >= {threshold}
+
+Existing riddles:
+"""
+        for i, riddle in enumerate(existing_riddles[:40], 1):  # Limit to 10 most recent for comparison
+            prompt += f"{i}. Q: {riddle['riddle']}\n   A: {riddle['answer']}\n"
+        
+        prompt += "\nNew riddles to check:\n"
+        for i, riddle in enumerate(remaining_riddles, 1):
+            prompt += f"{i}. Q: {riddle['riddle']}\n   A: {riddle['answer']}\n"
+
+        try:
+            similarity_results = self._generate_similarity_check(prompt)
+            if isinstance(similarity_results, list) and len(similarity_results) == len(remaining_riddles):
+                # Merge results back into the original list
+                result_idx = 0
+                for i in range(len(too_similar)):
+                    if not too_similar[i]:
+                        too_similar[i] = similarity_results[result_idx]
+                        result_idx += 1
+        except Exception as e:
+            self.logger.warning(f"Failed to batch check similarity: {e}")
+            # If batch check fails, assume remaining riddles are not similar
+            pass
+
+        return too_similar
+
+    def _prepare_riddle_prompt(
+        self,
+        category: str,
+        num_riddles: int,
+        difficulty: str,
+        style: str,
+        target_age: str,
+        educational: bool
+    ) -> str:
+        """Prepare riddle generation prompt with examples of recent riddles."""
+        # Get category-specific configuration
+        category_config = self.templates.get(category, {})
+        system_prompt = category_config.get("system_prompt", "You are an expert at creating engaging riddles.")
+        example_format = category_config.get("example_format", "")
+        
+        # Get difficulty configuration
+        difficulty_config = self.difficulty_levels.get(difficulty, {})
+        educational_level = difficulty_config.get("educational_level", "general")
+        
+        # Get recent riddles for this category (limit to 5 most recent)
+        recent_riddles = self._get_category_riddles(category, limit=40)  # Reduced from 20 to 5
+        existing_riddles_prompt = ""
+        if recent_riddles:
+            existing_riddles_prompt = "\n\nRecent riddles (DO NOT create similar riddles):\n"
+            for i, riddle in enumerate(recent_riddles, 1):
+                existing_riddles_prompt += f"{i}. Q: {riddle['riddle']}\n   A: {riddle['answer']}\n"
+
+        return f"""Create {num_riddles} unique {difficulty} difficulty riddles about {category}.
+Each riddle must be COMPLETELY DIFFERENT from any previously asked riddles.
+Style: {style}
+Target Age: {target_age}
+Educational Level: {educational_level}
+Make them {"educational and " if educational else ""}engaging.
+
+{system_prompt}
+
+{f"Example format: {example_format}" if example_format else ""}
+
+STRICT REQUIREMENTS:
+1. Each riddle must be completely unique in concept, structure, and solution
+2. Do not reuse any themes, concepts, or answers from the recent riddles
+3. Avoid similar word patterns or phrasings
+4. Each riddle should focus on a different aspect of {category}
+5. If a concept was used in a recent riddle, choose a completely different one{existing_riddles_prompt}
+
+Response must be a list of {num_riddles} objects, each containing 'riddle' and 'answer' fields."""
 
     def generate_riddle(
         self,
@@ -93,22 +220,30 @@ class OpenAIService(OpenAIServiceBase):
             self._validate_category(category)
             self._validate_difficulty(difficulty)
             
+            # Create category directory if it doesn't exist
+            category_dir = self._cache_dir / category
+            category_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Get existing riddles for similarity check
+            existing_riddles = self._get_category_riddles(category) if not no_cache else []
+            
             # Generate cache key if not provided and caching is enabled
             if not no_cache:
                 if not cache_key:
+                    # Include category in cache key generation
+                    timestamp = int(time.time())
                     params = {
                         "category": category,
                         "num_riddles": num_riddles,
                         "difficulty": difficulty,
                         "style": style,
                         "target_age": target_age,
-                        "educational": educational
+                        "educational": educational,
+                        "timestamp": timestamp
                     }
-                    cache_key = hashlib.sha256(
-                        json.dumps(params, sort_keys=True).encode()
-                    ).hexdigest()
+                    cache_key = f"{category}/{hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()}"
                 
-                if cache_key:  # Only check cache if we have a valid key
+                if cache_key:
                     self.logger.info(f"Cache key: {cache_key}")
                     # Check cache
                     cached_data = self.cache.get(cache_key)
@@ -118,7 +253,7 @@ class OpenAIService(OpenAIServiceBase):
             else:
                 self.logger.info("Cache disabled, generating new riddles")
             
-            # Prepare prompt
+            # Prepare prompt with recent riddles
             prompt = self._prepare_riddle_prompt(
                 category,
                 num_riddles,
@@ -127,7 +262,6 @@ class OpenAIService(OpenAIServiceBase):
                 target_age,
                 educational
             )
-            
             # Generate riddles
             for attempt in range(self.max_attempts):
                 try:
@@ -136,10 +270,21 @@ class OpenAIService(OpenAIServiceBase):
                         temperature=self.temperature + (attempt * 0.1)
                     )
                     
-                    # Parse and validate response
+                    # Parse response
                     riddle_data = self._parse_riddle_response(response)
-                    if all(self._validate_riddle(r) for r in riddle_data):
-                        break
+                    
+                    # Basic validation
+                    if not all(self._validate_riddle(r) for r in riddle_data):
+                        continue
+                    
+                    # Batch similarity check
+                    if existing_riddles:
+                        too_similar = self._batch_similarity_check(riddle_data, existing_riddles)
+                        self.logger.info(f"Similarity check results: {too_similar}")
+                        if any(too_similar):
+                            continue
+                    
+                    break
                         
                 except Exception as e:
                     if attempt == self.max_attempts - 1:
@@ -153,11 +298,22 @@ class OpenAIService(OpenAIServiceBase):
                     "category": category,
                     "difficulty": difficulty,
                     "style": style,
-                    "target_age": target_age
+                    "target_age": target_age,
+                    "timestamp": int(time.time())
                 })
             
             # Cache result if we have a valid key
             if cache_key and not no_cache:
+                # Save in category directory
+                cache_file = category_dir / f"{hashlib.sha256(json.dumps(riddle_data[0]['riddle'], sort_keys=True).encode()).hexdigest()}.json"
+                try:
+                    with open(cache_file, 'w') as f:
+                        json.dump(riddle_data, f, indent=2)
+                    self.logger.info(f"Saved riddles to {cache_file}")
+                except Exception as e:
+                    self.logger.warning(f"Failed to save riddles to file: {e}")
+                
+                # Also save in main cache for backward compatibility
                 self.cache.put(cache_key, riddle_data)
             
             return riddle_data
@@ -270,7 +426,6 @@ class OpenAIService(OpenAIServiceBase):
             if len(riddle_data["answer"]) < 1:
                 self.logger.info("Answer text too short")
                 return False
-
             
             # Check for inappropriate content
             if self._contains_inappropriate_content(riddle_data):
@@ -325,47 +480,41 @@ class OpenAIService(OpenAIServiceBase):
         if difficulty not in valid_difficulties:
             raise ValueError(f"Invalid difficulty: {difficulty}. Must be one of {valid_difficulties}")
 
-    def _prepare_riddle_prompt(
-        self,
-        category: str,
-        num_riddles: int,
-        difficulty: str,
-        style: str,
-        target_age: str,
-        educational: bool
-    ) -> str:
-        """Prepare riddle generation prompt.
+    def _get_category_riddles(self, category: str, limit: Optional[int] = None) -> List[Dict[str, str]]:
+        """Get cached riddles for a category.
         
         Args:
-            category: Riddle category
-            num_riddles: Number of unique riddles to generate
-            difficulty: Difficulty level
-            style: Riddle style
-            target_age: Target age group
-            educational: Whether to include educational content
+            category: The riddle category
+            limit: Optional limit of most recent riddles to return
             
         Returns:
-            Formatted prompt
+            List of cached riddles for the category
         """
-        # Get category-specific configuration
-        category_config = self.templates.get(category, {})
-        system_prompt = category_config.get("system_prompt", "You are an expert at creating engaging riddles.")
-        example_format = category_config.get("example_format", "")
-        
-        # Get difficulty configuration
-        difficulty_config = self.difficulty_levels.get(difficulty, {})
-        educational_level = difficulty_config.get("educational_level", "general")
-        
-        return f"""Create {num_riddles} unique {difficulty} difficulty riddles about {category}.
-Each riddle must be different from the others.
-Style: {style}
-Target Age: {target_age}
-Educational Level: {educational_level}
-Make them {"educational and " if educational else ""}engaging.
-
-{system_prompt}
-
-{f"Example format: {example_format}" if example_format else ""}""" 
+        try:
+            # Get all cache files in the category subdirectory
+            category_dir = self._cache_dir / category
+            if not category_dir.exists():
+                return []
+                
+            riddles = []
+            for cache_file in category_dir.glob("*.json"):
+                try:
+                    with open(cache_file) as f:
+                        data = json.load(f)
+                    if isinstance(data, list):
+                        riddles.extend(data)
+                except Exception as e:
+                    self.logger.warning(f"Failed to read cache file {cache_file}: {e}")
+            
+            # Sort by timestamp if available and return most recent
+            riddles.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
+            if limit and len(riddles) > limit:
+                riddles = riddles[:limit]
+                    
+            return riddles
+        except Exception as e:
+            self.logger.warning(f"Failed to get cached riddles for category {category}: {e}")
+            return []
 
     def validate_response(self, response: Dict) -> bool:
         """Validate OpenAI response format.

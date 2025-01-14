@@ -48,8 +48,6 @@ class VideoCompositionService(VideoCompositionServiceBase):
             # Process video segments
             video_segments = []
             
-            self.logger.info(f"Riddle segments: {riddle_segments}")
-            
             for segment, timing in zip(riddle_segments, segment_timings):
                 try:
                     # Get background video
