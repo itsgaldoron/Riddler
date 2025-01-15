@@ -82,11 +82,13 @@ class Application:
         }
         return emoji_map.get(difficulty, "")
     
-    def _create_video_segments(self, riddles: List[Dict[str, str]], difficulty: str) -> List[Dict]:
+    def _create_video_segments(self, riddles: List[Dict[str, str]], difficulty: str, no_riddle_text: bool = False) -> List[Dict]:
         """Transform riddles into video segments with proper timing and structure.
         
         Args:
             riddles: List of riddle dictionaries containing 'riddle' and 'answer' keys
+            difficulty: Difficulty level of the riddles
+            no_riddle_text: If True, only show hook text and hide other riddle text overlays
             
         Returns:
             List of segment dictionaries with all necessary metadata
@@ -102,9 +104,9 @@ class Application:
                 segments.append({
                     "id": f"hook_{uuid.uuid4().hex[:8]}",
                     "type": "hook",
-                    "text": hook_text,
+                    "text": "" if no_riddle_text else hook_text,  # Hook text is always shown
                     "voice_path": hook_speech,
-                    "timestamps": hook_timestamps,
+                    "timestamps": hook_timestamps if not no_riddle_text else None,
                     "index": len(segments),
                     "emoji": self._get_difficulty_emoji(difficulty)
                 })
@@ -114,9 +116,9 @@ class Application:
             segments.append({
                 "id": f"question_{uuid.uuid4().hex[:8]}",
                 "type": "question",
-                "text": riddle["riddle"],
+                "text": "" if no_riddle_text else riddle["riddle"],
                 "voice_path": question_speech,
-                "timestamps": question_timestamps,
+                "timestamps": question_timestamps if not no_riddle_text else None,
                 "index": len(segments)
             })
             
@@ -134,9 +136,9 @@ class Application:
             segments.append({
                 "id": f"answer_{uuid.uuid4().hex[:8]}",
                 "type": "answer",
-                "text": riddle["answer"],
+                "text": "" if no_riddle_text else riddle["answer"],
                 "voice_path": answer_speech,
-                "timestamps": answer_timestamps,
+                "timestamps": answer_timestamps if not no_riddle_text else None,
                 "index": len(segments)
             })
             
@@ -147,9 +149,9 @@ class Application:
                 segments.append({
                     "id": f"transition_{uuid.uuid4().hex[:8]}",
                     "type": "transition",
-                    "text": next_text,
+                    "text": "" if no_riddle_text else next_text,
                     "voice_path": next_speech,
-                    "timestamps": next_timestamps,
+                    "timestamps": next_timestamps if not no_riddle_text else None,
                     "index": len(segments)
                 })
         
@@ -159,9 +161,9 @@ class Application:
         segments.append({
             "id": f"cta_{uuid.uuid4().hex[:8]}",
             "type": "cta",
-            "text": cta_text,
+            "text": "" if no_riddle_text else cta_text,
             "voice_path": cta_speech,
-            "timestamps": cta_timestamps,
+            "timestamps": cta_timestamps if not no_riddle_text else None,
             "index": len(segments)
         })
         
@@ -185,7 +187,8 @@ class Application:
         riddles: List[Dict[str, str]],
         output_path: str,
         category: str,
-        difficulty: str
+        difficulty: str,
+        no_riddle_text: bool = False
     ) -> bool:
         """Create a riddle video from the provided riddles.
         
@@ -193,13 +196,15 @@ class Application:
             riddles: List of riddle dictionaries
             output_path: Path where the video should be saved
             category: Category of riddles for video background selection
+            difficulty: Difficulty level of the riddles
+            no_riddle_text: If True, only show hook text and hide other riddle text overlays
             
         Returns:
             True if video creation was successful, False otherwise
         """
         try:
             # Transform riddles into video segments
-            segments = self._create_video_segments(riddles, difficulty)
+            segments = self._create_video_segments(riddles, difficulty, no_riddle_text)
             
             # Get the video composition service
             video_service = self.service_factory.get_video_composition_service()

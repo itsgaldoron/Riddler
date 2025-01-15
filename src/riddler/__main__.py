@@ -58,6 +58,12 @@ def parse_args() -> argparse.Namespace:
         help="Disable riddle caching"
     )
     
+    parser.add_argument(
+        "--no-riddle-text",
+        action="store_true",
+        help="Only show hook text, hide other riddle text overlays"
+    )
+    
     return parser.parse_args()
 
 def main() -> Optional[int]:
@@ -92,7 +98,8 @@ def main() -> Optional[int]:
             riddles=riddles,
             output_path=output_path,
             category=args.category,
-            difficulty=args.difficulty
+            difficulty=args.difficulty,
+            no_riddle_text=args.no_riddle_text
         )
         
         log.info(f"Successfully created video: {output_path}")
