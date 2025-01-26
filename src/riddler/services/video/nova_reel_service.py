@@ -9,6 +9,7 @@ import uuid
 import boto3
 import requests as req
 import botocore.session
+import os
 
 from botocore.auth import SigV4Auth
 from typing import Dict, List, Tuple, Optional, Union
@@ -20,20 +21,21 @@ class NovaReelService:
     SERVICE_NAME: str = 'bedrock'
     MAX_TIME: int = 3600
     
-    def __init__(self, region: str = 'us-east-1', model_id: str = 'amazon.nova-reel-v1:0', bucket: str = None):
+    def __init__(self, bucket: str = None, region: str = 'us-east-1', model_id: str = 'amazon.nova-reel-v1:0'):
         """
         Initialize the Nova Reel service.
         
         Args:
+            bucket: S3 bucket name to use (without s3:// prefix)
             region: AWS region to use
             model_id: Nova Reel model ID
-            bucket: S3 bucket URI for video output
         """
         self.region = region
         self.model_id = model_id
-        self.bucket = bucket
-        if not bucket:
-            raise ValueError("S3 bucket URI must be provided")
+        # Use provided bucket or generate unique name
+        self.bucket = bucket if bucket else f"nova-reel-videos-{str(uuid.uuid4())[:8]}"
+        self.local_output_dir = f"./{self.bucket}"
+        os.makedirs(self.local_output_dir, exist_ok=True)
 
     def get_inference(self, prompt_id: int, payload: Dict) -> Optional[Tuple[int, Dict]]:
         """
@@ -120,11 +122,11 @@ class NovaReelService:
         Returns:
             Dictionary containing the request payload
         """
-        s3_uri = self.bucket
+        s3_uri = f"s3://{self.bucket}"
         if filename:
             # Remove .mp4 extension if present and add it back to ensure consistency
             base_filename = filename.replace('.mp4', '')
-            s3_uri = f"{self.bucket}/{base_filename}.mp4"
+            s3_uri = f"s3://{self.bucket}/{base_filename}.mp4"
 
         return {
             "modelId": self.model_id,
@@ -147,6 +149,32 @@ class NovaReelService:
             },
             "clientRequestToken": str(uuid.uuid4())
         }
+
+    def download_video(self, s3_uri: str, sequence_number: int) -> str:
+        """
+        Download video from S3 to local storage with sequential naming.
+        
+        Args:
+            s3_uri: S3 URI of the video
+            sequence_number: Sequence number for the video
+            
+        Returns:
+            Local file path of the downloaded video
+        """
+        s3 = boto3.client('s3')
+        bucket_name = s3_uri.split('/')[2]
+        key = '/'.join(s3_uri.split('/')[3:])
+        
+        # Create sequential filename
+        local_path = f"{self.local_output_dir}/video_{sequence_number:03d}.mp4"
+        
+        try:
+            s3.download_file(bucket_name, key, local_path)
+            print(f"Downloaded video to {local_path}")
+            return local_path
+        except Exception as e:
+            print(f"Error downloading video: {e}")
+            return None
 
     def generate_videos(self, prompts: Union[List[str], List[Tuple[str, str]]]) -> None:
         """
@@ -183,14 +211,22 @@ class NovaReelService:
         jobs_total = len(invocation_data)
         jobs_completed = 0
         st = time.time()
+        bedrock_runtime = boto3.client("bedrock-runtime", region_name=self.region)
         
         while True:
             jobs_completed = 0  # Reset counter for each iteration
-            for arn, filename in invocation_data:
-                status = self.print_async_job_status(arn, filename)
+            for i, (arn, filename) in enumerate(invocation_data):
+                invocation = bedrock_runtime.get_async_invoke(invocationArn=arn)
+                status = invocation["status"]
                 print(f"arn={arn}, filename={filename}, status={status}")
+                
                 if status == "Completed":
                     jobs_completed += 1
+                    # Get the video URI from the completed job
+                    bucket_uri = invocation["outputDataConfig"]["s3OutputDataConfig"]["s3Uri"]
+                    video_uri = f"{bucket_uri}/{filename if filename else 'output.mp4'}"
+                    # Download the video with sequential numbering
+                    self.download_video(video_uri, i)
                     
             if jobs_completed == jobs_total:
                 print("All jobs completed, exiting")
