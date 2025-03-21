@@ -110,6 +110,17 @@ class OpenAIService(OpenAIServiceBase):
                     return cached_data
             else:
                 self.logger.info("Cache disabled, generating new riddle")
+                # Generate a cache key anyway for potential storage
+                params = {
+                    "category": category,
+                    "difficulty": difficulty,
+                    "style": style,
+                    "target_age": target_age,
+                    "educational": educational
+                }
+                cache_key = hashlib.sha256(
+                    json.dumps(params, sort_keys=True).encode()
+                ).hexdigest()
             
             # Prepare prompt
             prompt = self._prepare_riddle_prompt(
@@ -147,8 +158,9 @@ class OpenAIService(OpenAIServiceBase):
                 "target_age": target_age
             })
             
-            # Cache result
-            self.cache.put(cache_key, riddle_data)
+            # Cache result if caching is enabled
+            if not no_cache and cache_key:
+                self.cache.put(cache_key, riddle_data)
             
             return riddle_data
             

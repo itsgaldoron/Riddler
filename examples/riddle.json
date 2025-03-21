@@ -1,0 +1,11 @@
+{
+    "question": "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?",
+    "answer": "An Echo",
+    "category": "wordplay",
+    "difficulty": "medium",
+    "metadata": {
+        "generated_timestamp": "2024-03-21T12:00:00Z",
+        "model": "gpt-4o-2024-08-06",
+        "temperature": 0.7
+    }
+} 

@@ -1,0 +1,35 @@
+[
+    {
+        "question": "What has cities, but no houses; forests, but no trees; and water, but no fish?",
+        "answer": "A map",
+        "category": "geography",
+        "difficulty": "easy",
+        "metadata": {
+            "generated_timestamp": "2024-03-21T12:01:00Z",
+            "model": "gpt-4o-2024-08-06",
+            "temperature": 0.7
+        }
+    },
+    {
+        "question": "I have keys but no locks. I have space but no room. You can enter, but can't go outside. What am I?",
+        "answer": "A keyboard",
+        "category": "wordplay",
+        "difficulty": "medium",
+        "metadata": {
+            "generated_timestamp": "2024-03-21T12:02:00Z",
+            "model": "gpt-4o-2024-08-06",
+            "temperature": 0.7
+        }
+    },
+    {
+        "question": "If you drop a yellow hat in the Red Sea, what does it become?",
+        "answer": "Wet",
+        "category": "logic",
+        "difficulty": "easy",
+        "metadata": {
+            "generated_timestamp": "2024-03-21T12:03:00Z",
+            "model": "gpt-4o-2024-08-06",
+            "temperature": 0.7
+        }
+    }
+] 

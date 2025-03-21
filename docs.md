@@ -3,6 +3,201 @@
 ## Description
 Riddler is an advanced AI system that generates, processes, and manages riddles with multimedia capabilities including video and voice outputs. The system handles riddle generation, caching, and multimedia processing in an efficient and organized manner.
 
+## Running the Application
+
+### Prerequisites
+Before running the application, ensure you have:
+
+1. **Python 3.8+** installed on your system
+2. **FFmpeg** installed for video processing
+3. Required API keys:
+   - OpenAI API key
+   - ElevenLabs API key
+   - Pexels API key
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd riddler
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Set up environment variables by creating a `.env` file in the project root:
+   ```
+   RIDDLER_OPENAI_API_KEY=your_openai_key
+   RIDDLER_ELEVENLABS_API_KEY=your_elevenlabs_key
+   RIDDLER_PEXELS_API_KEY=your_pexels_key
+   RIDDLER_ENV=development
+   ```
+
+4. Run the setup script (recommended):
+   ```bash
+   chmod +x setup.sh
+   ./setup.sh
+   ```
+   
+   This will:
+   - Create the required directory structure
+   - Generate a default configuration file
+   - Set up environment variable templates
+   - Create example content
+
+5. Alternatively, create required directories manually:
+   ```bash
+   mkdir -p cache/voice cache/video cache/riddles cache/intermediate cache/pexels_cache
+   mkdir -p output logs assets/audio assets/video
+   mkdir -p examples
+   ```
+
+6. Ensure you have required audio assets:
+   - Place audio files in `assets/audio/` directory
+   - Required files: countdown.mp3, reveal.mp3
+
+### Directory Structure After Setup
+
+The application requires the following directory structure:
+
+```
+riddler/
+├── assets/
+│   ├── audio/          # Static audio assets
+│   │   ├── countdown.mp3
+│   │   └── reveal.mp3
+│   └── video/          # Optional static video assets
+├── cache/
+│   ├── riddles/        # Cached riddle content
+│   ├── video/          # Cached video content
+│   ├── voice/          # Cached voice content
+│   ├── intermediate/   # Temporary processing files
+│   └── pexels_cache/   # Cached Pexels videos
+├── config/             # Configuration files
+│   └── config.json
+├── output/             # Generated videos
+└── logs/               # Application logs
+```
+
+### Basic Usage
+
+Run the application with the following command:
+
+```bash
+python main.py -c CATEGORY -d DIFFICULTY -n NUM_RIDDLES -o OUTPUT_DIR
+```
+
+#### Examples:
+
+```bash
+# Generate 2 medium difficulty geography riddles
+python main.py -c geography -d medium -n 2 -o output
+
+# Generate 3 hard physics riddles
+python main.py -c physics -d hard -n 3 -o output/physics
+
+# Generate 2 easy wordplay riddles with caching disabled
+python main.py -c wordplay -d easy -n 2 -o output --no-riddle-cache
+```
+
+### Video Generation Workflow
+
+When you run the application, it follows this workflow:
+
+1. **Input Validation**
+   - Validates category, difficulty, and other arguments
+   - Checks API keys and environment setup
+
+2. **Riddle Generation**
+   - Calls OpenAI API to generate riddles based on the category/difficulty
+   - Applies caching if enabled (bypassed with `--no-riddle-cache`)
+   - Validates riddle content and format
+
+3. **Voice Synthesis**
+   - Sends riddle text to ElevenLabs for voice synthesis
+   - Caches audio for future use
+   - Prepares audio segments for video integration
+
+4. **Background Video Acquisition**
+   - Queries Pexels API for category-appropriate background videos
+   - Downloads and caches background videos
+   - Prepares video segments for processing
+
+5. **Video Processing**
+   - Creates text overlays for riddle questions and answers
+   - Synchronizes audio with video segments
+   - Applies dynamic effects and transitions
+   - Compiles segments into a complete video
+
+6. **Output Generation**
+   - Renders final video with hardware acceleration when available
+   - Optimizes for TikTok or social media sharing
+   - Saves the completed video to the specified output directory
+
+7. **Cleanup**
+   - Removes temporary processing files
+   - Maintains cache within size limits
+   - Logs processing statistics
+
+The entire process typically takes 1-3 minutes depending on the number of riddles and your hardware specifications.
+
+### Configuration
+
+The application uses a configuration file located at `config/config.json`. You can:
+
+1. Use the default configuration
+2. Create a custom configuration file
+3. Pass a custom configuration:
+   ```bash
+   python main.py -c geography --config path/to/custom_config.json
+   ```
+
+### Command-line Arguments
+
+| Argument | Short | Description | Default |
+|----------|-------|-------------|---------|
+| `--category` | `-c` | Riddle category | (required) |
+| `--difficulty` | `-d` | Riddle difficulty | medium |
+| `--num_riddles` | `-n` | Number of riddles | 2 |
+| `--output` | `-o` | Output directory | output |
+| `--config` | | Path to config file | config/config.json |
+| `--no-riddle-cache` | | Disable riddle caching | False |
+
+### Valid Categories
+- geography
+- math
+- physics
+- history
+- logic
+- wordplay
+- biker mechanic
+
+### Valid Difficulty Levels
+- easy
+- medium
+- hard
+
+### Troubleshooting
+
+**1. API Key Issues**
+- Ensure all required API keys are set in the `.env` file
+- Verify API keys are valid and have sufficient quota/credits
+
+**2. FFmpeg Issues**
+- Ensure FFmpeg is installed and accessible in your PATH
+- Minimum FFmpeg version required: 4.2+
+
+**3. Video Duration Errors**
+- Minimum video duration: 60 seconds
+- If you get "Invalid segment timings" error, try increasing the number of riddles
+
+**4. Cache Issues**
+- Use `--no-riddle-cache` flag to bypass caching issues
+- Clear the cache directories manually if needed
+
 ## Main Features
 - AI-powered riddle generation across multiple categories (geography, math, physics, history, logic, wordplay)
 - Text-to-speech voice synthesis using ElevenLabs
