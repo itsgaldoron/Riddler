@@ -65,4 +65,4 @@ By participating in this project, you agree to abide by our code of conduct: be 
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the project's MIT License. 
+By contributing, you agree that your contributions will be licensed under the project's Creative Commons Attribution-NonCommercial 4.0 International License. All intellectual property rights remain with the original author. Contributors retain copyright to their contributions but grant the project the rights to use those contributions under the CC BY-NC license. 

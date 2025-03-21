@@ -1,3 +1,14 @@
+"""
+Riddler - AI-Powered Riddle Generation System
+
+This file is part of Riddler.
+Copyright (c) 2025 Riddler
+
+This work is licensed under the Creative Commons Attribution-NonCommercial 4.0
+International License. To view a copy of this license, visit:
+https://creativecommons.org/licenses/by-nc/4.0/
+"""
+
 import logging
 from typing import Dict, List, Optional
 from config.config import Configuration

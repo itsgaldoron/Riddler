@@ -2,7 +2,7 @@
 
 ![Riddler](https://img.shields.io/badge/Riddler-AI--Powered%20Riddles-orange)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
+![License](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey)
 
 Riddler is an advanced AI system that generates interactive riddles with video and voice capabilities, perfect for educational content and social media.
 
@@ -62,4 +62,4 @@ Configuration is managed through `config/config.json`. See documentation for det
 
 ## 📝 License
 
-[MIT License](LICENSE) 
+This work is licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License](LICENSE). Copyright (c) 2025 Riddler. 

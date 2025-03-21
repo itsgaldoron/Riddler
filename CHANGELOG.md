@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Command-line interface
 - Configuration system
 
+### Changed
+- Updated project license from MIT to Creative Commons Attribution-NonCommercial 4.0 International License
+
 ### Fixed
 - Caching issue when using `--no-riddle-cache` flag
 - Video duration calculation in multi-riddle scenarios

@@ -959,3 +959,23 @@ riddler/
     }
     ```
 - Note: Directory and files are created by `setup.sh`
+
+## Usage Permissions
+
+Riddler is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License.
+
+### Permitted Uses
+- Educational projects
+- Personal use
+- Research
+- Non-profit organizations
+- Extending the codebase for non-commercial applications
+
+### Prohibited Uses
+- Commercial applications without explicit permission
+- Selling or licensing the software
+- Using the software to generate content for commercial purposes
+- Incorporating the code into commercial products
+
+### Getting Permission for Commercial Use
+For commercial licensing inquiries, please contact [your contact information].
