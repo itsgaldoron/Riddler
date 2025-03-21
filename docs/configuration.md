@@ -1,4 +1,5 @@
 # Riddler Configuration Guide
+*Version: 1.0.0*
 
 This document explains all configuration options available in the `config/config.json` file.
 
@@ -157,4 +158,26 @@ The configuration file is structured in several sections:
 
 ## Example Complete Configuration
 
-See `config/config.json` for a complete example configuration. 
+See `config/config.json` for a complete example configuration.
+
+## Command-line Arguments
+
+Riddler supports the following command-line arguments:
+
+```bash
+python main.py [OPTIONS]
+```
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-c, --category` | Riddle category | random |
+| `-d, --difficulty` | Difficulty level (easy, medium, hard) | medium |
+| `-n, --num_riddles` | Number of riddles to generate | 2 |
+| `-o, --output` | Output directory | output |
+| `--no-riddle-cache` | Disable riddle caching | False |
+| `--no-video-cache` | Disable video caching | False |
+| `--config` | Path to custom configuration file | config/config.json |
+
+---
+
+*Navigate: [Back to Index](index.md) | [Previous: Getting Started](getting-started.md) | [Next: Advanced Usage](advanced_usage.md)* 

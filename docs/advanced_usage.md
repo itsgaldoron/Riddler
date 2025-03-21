@@ -1,4 +1,5 @@
 # Advanced Usage Guide
+*Version: 1.0.0*
 
 This guide covers advanced usage scenarios and customization options for the Riddler application.
 
@@ -174,4 +175,26 @@ Configure the application to send notifications when videos are complete:
   "webhook_url": "https://your-webhook-url",
   "email": "your-email@example.com"
 }
-``` 
+```
+
+## Batch Processing with Scripts
+
+For bulk riddle generation, you can create simple shell scripts:
+
+```bash
+#!/bin/bash
+CATEGORIES=("geography" "math" "physics" "history")
+DIFFICULTY=("easy" "medium" "hard")
+
+for cat in "${CATEGORIES[@]}"; do
+  for diff in "${DIFFICULTY[@]}"; do
+    python main.py -c "$cat" -d "$diff" -n 3 -o "output/$cat/$diff"
+  done
+done
+```
+
+Save as `batch_generate.sh`, make executable with `chmod +x batch_generate.sh`, and run.
+
+---
+
+*Navigate: [Back to Index](index.md) | [Previous: Configuration](configuration.md) | [Next: Features](features.md)* 

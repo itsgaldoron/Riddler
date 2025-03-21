@@ -1,3 +1,14 @@
+# Quickstart Guide (Deprecated)
+*Version: 1.0.0*
+
+> **Note:** This quickstart guide has been replaced by the more comprehensive [Getting Started Guide](getting-started.md). Please refer to that document for the most up-to-date information.
+
+This document will be removed in a future release.
+
+---
+
+*Navigate: [Getting Started](getting-started.md) | [Back to Index](index.md)*
+
 # Riddler Quick Start Guide
 
 This guide provides the fastest way to get up and running with Riddler.

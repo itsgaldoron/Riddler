@@ -36,7 +36,14 @@ python main.py -c geography -d medium -n 2 -o output
 
 ## 📚 Documentation
 
-For complete documentation, see [docs.md](docs.md).
+For complete documentation, see the [docs](docs/) directory.
+
+Key documentation files:
+- [Getting Started](docs/getting-started.md)
+- [Configuration](docs/configuration.md)
+- [Features](docs/features.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Development Guidelines](docs/development.md)
 
 ## 🔑 Features
 
@@ -58,7 +65,7 @@ For complete documentation, see [docs.md](docs.md).
 
 ## 🛠️ Configuration
 
-Configuration is managed through `config/config.json`. See documentation for details.
+Configuration is managed through `config/config.json`. See [configuration documentation](docs/configuration.md) for details.
 
 ## 📝 License
 
