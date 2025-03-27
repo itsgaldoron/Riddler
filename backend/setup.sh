@@ -3,11 +3,13 @@
 # Exit on error
 set -e
 
-echo "Setting up TikTok Riddle Video Generator..."
+echo "Setting up TikTok Riddle Video Generator Backend..."
 
-# Create virtual environment
+# Create virtual environment if it doesn't exist
 echo "Creating virtual environment..."
-python3 -m venv venv
+if [ ! -d "venv" ]; then
+    python3 -m venv venv
+fi
 source venv/bin/activate
 
 # Install dependencies
@@ -85,10 +87,10 @@ for file in "${AUDIO_FILES[@]}"; do
     fi
 done
 
-echo "Setup complete!"
+echo "Backend setup complete!"
 echo
 echo "Next steps:"
 echo "1. Add your API keys to .env"
 echo "2. Add audio files to assets/audio/"
 echo "3. Add background videos to assets/video/ (optional)"
-echo "4. Run 'python -m core.cli --help' to see available commands" 
+echo "4. Run 'python main.py --help' to see available commands" 

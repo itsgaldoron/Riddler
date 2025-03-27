@@ -1,0 +1,55 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Technology Requirements
+- Always use Next.js 15 with the App Router
+- Use Bun as the JavaScript runtime and package manager
+- Use TypeScript for all code
+- Use Shadcn UI for components
+- Use TailwindCSS for styling
+- Use React Query (TanStack Query) for data fetching
+- Use Zod for validation
+- Use Zustand for state management
+
+## Coding Standards
+- Follow strict TypeScript practices with proper typing
+- Use React Server Components where appropriate
+- Implement proper error handling on all API calls
+- Ensure responsive design for all screen sizes
+- Follow Airbnb ESLint rules
+- Use Prettier for code formatting
+
+## Component Structure
+- Keep components focused on single responsibilities
+- Use hooks for shared logic
+- Utilize composition over inheritance
+
+## API Integration
+- Create proper API abstractions in lib/api.ts
+- Implement retry logic for failed requests
+- Cache responses appropriately with React Query
+- Handle loading, error, and success states
+
+## Styling
+- Use CSS variables for theming
+- Follow the existing design tokens from Shadcn
+- Create responsive layouts using Tailwind's breakpoint system
+
+## Documentation
+- Document all components with JSDoc
+- Create README files for complex features
+- Document API integration points
+
+## Testing
+- Write tests for critical functionality
+- Use React Testing Library for component tests
+- Mock API calls in tests
+
+## Terminal Usage
+- Always check current working directory before executing commands (using `pwd`)
+- Verify file/directory existence before operations with `ls` or `find`
+- Use relative paths when working within the project structure
+- Prefer non-interactive commands that don't require user intervention
+- Use command flags that assume default responses (e.g., `rm -f`, `npm install --yes`)
